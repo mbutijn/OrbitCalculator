@@ -6,6 +6,10 @@ public class Vector {
         this.y = y;
     }
 
+    Vector(double radius, double angle, boolean radialCoordinates){
+        this.setVectorFromRadiusAndAngle(radius, angle);
+    }
+
     public double getX(){
         return x;
     }
@@ -44,5 +48,9 @@ public class Vector {
         this.x += x;
         this.y += y;
         return this;
+    }
+
+    public Vector addFromRadialCoordinates(double radius, double angle){
+        return add(radius * Math.cos(angle), radius * Math.sin(angle));
     }
 }

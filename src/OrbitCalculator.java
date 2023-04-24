@@ -16,26 +16,32 @@ public class OrbitCalculator extends JFrame implements KeyListener {
     private int warp = 1;
     private boolean firing = false;
     private double engineDirection = 0;
+    private double fireDirection;
 
     public OrbitCalculator(String title) {
         this.setTitle(title);
     }
 
-    public static void main (String[] args) {
+    public static void main (String[] args) throws Exception {
         new OrbitCalculator("Orbit Calculator").start();
     }
 
-    public void start(){
+    public void start() throws Exception {
         setVisible(true);
         setSize(xBound, yBound);
         setContentPane(space);
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         setKeyBoardListeners();
 
-        orbit.recalculate(new Vector(-2, 2), new Vector(0.2, 0.2));
+//        orbit.recalculate(new Vector(-2, 2), new Vector(0.2, 0.2)); // ellipse
+        orbit.dT = 0.01;
+        orbit.skipIndex = 1;
+        orbit.recalculate(new Vector(-2, 2), new Vector(1.01*Math.pow(2, -0.75), 1.01*Math.pow(2, -0.75))); // escape trajectory
+
+        orbit.updatePixelPosition();
 
         // start the simulation
-        new Timer(40, update).start(); // dt = 40 ms -> f_s = 25 Hz
+        new Timer(50, update).start(); // dt = 50 ms -> f_s = 20 Hz
     }
 
     private void setKeyBoardListeners() {
@@ -45,20 +51,32 @@ public class OrbitCalculator extends JFrame implements KeyListener {
     }
 
     private final ActionListener update = e -> {
-        index += warp;
+        index += orbit.skipIndex * warp;
         if (index >= orbit.numberOfNodes) {
             index -= orbit.numberOfNodes;
         }
-        if (firing && warp == 1) { // engine burn
-            Vector velocity = orbit.velocities.get(index);
-            double direction = velocity.getAngle() + engineDirection;
 
-            velocity.add(0.002 * Math.cos(direction), 0.002 * Math.sin(direction));
-            orbit.recalculate(orbit.positions.get(index), velocity);
+        orbiter.setPosition(orbit.positions.get(index));
+
+        if (firing && warp == 1) { // engine burn
+            orbiter.setVelocity(new Vector((orbit.positions.get(index).getX() - orbit.positions.get(index-1).getX()) / orbit.dT,
+                    (orbit.positions.get(index).getY() - orbit.positions.get(index-1).getY()) / orbit.dT));
+
+            Vector velocity = orbiter.velocity;
+            fireDirection = velocity.getAngle() + engineDirection;
+
+            velocity.addFromRadialCoordinates(0.002, fireDirection);
+            try {
+                orbit.recalculate(orbit.positions.get(index), velocity);
+            } catch (Exception exception) {
+                exception.printStackTrace();
+            }
             index = 0;
         }
-        orbiter.setX(orbit.x_int.get(index));
-        orbiter.setY(orbit.y_int.get(index));
+
+        orbit.updatePixelPosition();
+        orbiter.updatePixelPosition();
+
         space.repaint();
     };
 
@@ -87,11 +105,21 @@ public class OrbitCalculator extends JFrame implements KeyListener {
         }
         if (code == KeyEvent.VK_COMMA){
             warp = Math.max(1, warp / 10);
-            System.out.println("warp: "+ warp);
+            System.out.println("warp: " + warp);
         }
         if (code == KeyEvent.VK_PERIOD){
             warp = warp * 10;
-            System.out.println("warp: "+ warp);
+            System.out.println("warp: " + warp);
+        }
+        if (code == KeyEvent.VK_ESCAPE){ // orbit reset button
+            try {
+                orbit.dT = 0.001;
+                orbit.skipIndex = 10;
+                orbit.recalculate(new Vector(-2, 2), new Vector(0.2, 0.2));
+            } catch (Exception exception) {
+                exception.printStackTrace();
+            }
+            warp = 1;
         }
     }
 
@@ -118,6 +146,11 @@ public class OrbitCalculator extends JFrame implements KeyListener {
             // draw extremes
             orbit.drawPeriapsis(g2d);
             orbit.drawApoapsis(g2d);
+
+            // draw engine thrust direction
+            if(firing){
+                orbiter.drawThrustVector(g2d, fireDirection);
+            }
         }
     }
 
