@@ -17,9 +17,9 @@ public class Orbit {
         x_int.clear();
         y_int.clear();
 
-        double r_start = currentPosition.getAbs(); // ~ 2.828 m
+        double r_start = currentPosition.getAbs(); // ~ 2.828 m (case 1)
         double angle_start = currentPosition.getAngle();
-        double v_start_abs = start_velocity.getAbs(); // ~ 0.2828 m/s
+        double v_start_abs = start_velocity.getAbs(); // ~ 0.2828 m/s (case 1)
         double v_start_abs2 = v_start_abs * v_start_abs;
 
         Vector positionChange = new Vector(dT * start_velocity.getX(), dT * start_velocity.getY());
@@ -28,6 +28,9 @@ public class Orbit {
         double distance = positionChange.getAbs();
 
         boolean CCW = secondPosition.getAngle() > currentPosition.getAngle();
+        if (currentPosition.getX() < 0 && currentPosition.getAngle() * secondPosition.getAngle() < 0) {
+            CCW = !CCW; // correct for bug at values of angle around pi and -pi
+        }
         // System.out.println("orbit is counter clockwise: " + CCW);
 
         double s = (r_start + distance + r_2) / 2; // semi-perimeter triangle
@@ -75,7 +78,7 @@ public class Orbit {
         // System.out.println("orbiter descending: " + descending);
 
         double argument = (-r_start + a - e2 * a) / (r_start * e);
-        double nu_start = argument < -1 ? 1.5 * Math.PI : argument > 1 ? 0.5*Math.PI : Math.acos(argument);
+        double nu_start = argument < -1 ? Math.PI : argument > 1 ? 0 : Math.acos(argument);
 
         if (descending == CCW) {
             nu_start = 2 * Math.PI - nu_start; // true anomaly
@@ -118,14 +121,14 @@ public class Orbit {
             apoapsis.setVectorFromRadiusAndAngle(Ra, periapsis_angle + Math.PI);
 
             if (CCW) {
-                while (nu < nu_start + 2 * Math.PI + dT * omega && r < SOI) {
+                while (nu < nu_start + 2 * Math.PI + dT * omega && r < SOI && r > 0.2) {
                     r = l / (1 + e * Math.cos(nu));
                     omega = dAdt / (r * r);
                     nu += omega * dT;
                     positions.add(new Vector(r, periapsis_angle + nu, true));
                 }
             } else {
-                while (nu > nu_start - 2 * Math.PI - dT * omega && r < SOI) {
+                while (nu > nu_start - 2 * Math.PI - dT * omega && r < SOI && r > 0.2) {
                     r = l / (1 + e * Math.cos(nu));
                     omega = dAdt / (r * r);
                     nu -= omega * dT;

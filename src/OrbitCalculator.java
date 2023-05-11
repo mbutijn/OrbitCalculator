@@ -36,7 +36,8 @@ public class OrbitCalculator extends JFrame implements KeyListener {
 //        orbit.recalculate(new Vector(-2, 2), new Vector(0.2, 0.2)); // ellipse
         orbit.dT = 0.01;
         orbit.skipIndex = 1;
-        orbit.recalculate(new Vector(-2, 2), new Vector(1.01*Math.pow(2, -0.75), 1.01*Math.pow(2, -0.75))); // escape trajectory
+        //orbit.recalculate(new Vector(-2, 2), new Vector(1.01*Math.pow(2, -0.75), 1.01*Math.pow(2, -0.75))); // escape trajectory
+        orbit.recalculate(new Vector(4.5, 0), new Vector(-0.4, 0.4));
 
         orbit.updatePixelPosition();
 
@@ -87,19 +88,19 @@ public class OrbitCalculator extends JFrame implements KeyListener {
     @Override
     public void keyPressed(KeyEvent e) {
         int code = e.getKeyCode();
-        if (code == KeyEvent.VK_UP) { // prograde engine burn
+        if (code == KeyEvent.VK_UP && warp == 1) { // prograde engine burn
             firing = true;
             engineDirection = 0;
         }
-        if (code == KeyEvent.VK_DOWN) { // retrograde engine burn
+        if (code == KeyEvent.VK_DOWN && warp == 1) { // retrograde engine burn
             firing = true;
             engineDirection = Math.PI;
         }
-        if (code == KeyEvent.VK_RIGHT){ // radial in / radial out
+        if (code == KeyEvent.VK_RIGHT && warp == 1){ // radial in / radial out
             firing = true;
             engineDirection = 1.5*Math.PI;
         }
-        if (code == KeyEvent.VK_LEFT){ // radial in / radial out
+        if (code == KeyEvent.VK_LEFT && warp == 1){ // radial in / radial out
             firing = true;
             engineDirection = 0.5*Math.PI;
         }
@@ -141,7 +142,7 @@ public class OrbitCalculator extends JFrame implements KeyListener {
             orbiter.draw(g2d);
 
             // draw celestial body
-            g2d.fillOval(midX - 5, midY - 5, 10, 10);
+            g2d.drawOval(midX - 20, midY - 20, 40, 40);
 
             // draw extremes
             orbit.drawPeriapsis(g2d);

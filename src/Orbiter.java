@@ -19,7 +19,7 @@ public class Orbiter {
     }
 
     public void draw(Graphics2D g2d) {
-        g2d.drawRect(x_int - 2, y_int - 2, 4 ,4);
+        g2d.drawRect(x_int - 2, y_int - 2, 4,4);
     }
 
     public void drawThrustVector(Graphics2D g2d, double direction){
