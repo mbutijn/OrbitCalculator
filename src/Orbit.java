@@ -38,7 +38,7 @@ public class Orbit {
 
         // vis viva equation
         double a = r_start / (2 - r_start * v_start_abs2); // semi-major axis (V_esc = 1/(4th_root(2)) ~ 0.8409 m/s)
-        // System.out.println("a: " + a);
+         System.out.println("a: " + a);
 
         double dAdt = tw_area / dT; // twice area swept over time
         // System.out.println("dAdt: " + dAdt);
@@ -83,6 +83,8 @@ public class Orbit {
         if (descending == CCW) {
             nu_start = 2 * Math.PI - nu_start; // true anomaly
         }
+        nu_start = nu_start > Math.PI ? nu_start - 2 * Math.PI : nu_start;
+
         // System.out.println("nu_start: " + Math.toDegrees(nu_start));
 
         double periapsis_angle = angle_start - nu_start;
@@ -107,8 +109,7 @@ public class Orbit {
             dT = 0.01;
             skipIndex = 1;
         } else { // a >= 75
-//            Exception exception = new Exception("semi major axis too large");
-//            throw exception;
+//            throw new Exception("semi major axis too large");
         }
 
         // Make the orbital trajectory
@@ -116,40 +117,60 @@ public class Orbit {
         double omega = 0;
         double r = r_start;
         double SOI = 6;
+        boolean switched = false;
 
         if (a > 0) { // ellipse
             apoapsis.setVectorFromRadiusAndAngle(Ra, periapsis_angle + Math.PI);
-
+            double nu_end;
             if (CCW) {
-                while (nu < nu_start + 2 * Math.PI + dT * omega && r < SOI && r > 0.2) {
-                    r = l / (1 + e * Math.cos(nu));
-                    omega = dAdt / (r * r);
-                    nu += omega * dT;
-                    positions.add(new Vector(r, periapsis_angle + nu, true));
+                nu_end = nu_start + 2 * Math.PI + dT * omega;
+                while (nu < nu_end && r < SOI) {
+                    if (r < 0.2 && !switched){
+                        nu = -nu;
+                        switched = true;
+                    } else {
+                        r = l / (1 + e * Math.cos(nu));
+                        omega = dAdt / (r * r);
+                        nu += omega * dT;
+                        positions.add(new Vector(r, periapsis_angle + nu, true));
+                    }
+
                 }
             } else {
-                while (nu > nu_start - 2 * Math.PI - dT * omega && r < SOI && r > 0.2) {
-                    r = l / (1 + e * Math.cos(nu));
-                    omega = dAdt / (r * r);
-                    nu -= omega * dT;
+                nu_end = nu_start - 2 * Math.PI - dT * omega;
+                while (nu > nu_end && r < SOI) {
+                    if (r < 0.2 && !switched){
+                        nu = -nu;
+                        switched = true;
+                    } else {
+                        r = l / (1 + e * Math.cos(nu));
+                        omega = dAdt / (r * r);
+                        nu -= omega * dT;
+                    }
                     positions.add(new Vector(r, periapsis_angle + nu, true));
+
                 }
             }
         } else { // hyperbolic trajectory
             while (r < SOI) {
-                r = l / (1 + e * Math.cos(nu));
-                omega = dAdt / (r * r);
-                if (CCW) {
-                    nu += omega * dT;
+                if (r < 0.2 && !switched){
+                    nu = -nu;
+                    switched = true;
                 } else {
-                    nu -= omega * dT;
+                    r = l / (1 + e * Math.cos(nu));
+                    omega = dAdt / (r * r);
+                    if (CCW) {
+                        nu += omega * dT;
+                    } else {
+                        nu -= omega * dT;
+                    }
                 }
                 positions.add(new Vector(r, periapsis_angle + nu, true));
             }
         }
 
         numberOfNodes = positions.size();
-        //System.out.println("numberOfNodes: " + numberOfNodes);
+        System.out.println("numberOfNodes: " + numberOfNodes);
     }
 
     public void draw(Graphics g2d) {
@@ -170,6 +191,16 @@ public class Orbit {
         int y = OrbitCalculator.midY - (int) (OrbitCalculator.scaleFactor * apoapsis.getY());
         g2d.fillOval(x-3, y-3, 6 ,6);
         g2d.drawString(String.format("Ap: %.3f", apoapsis.abs), x, y-5);
+    }
+
+    public void reset(){
+        dT = 0.001;
+        skipIndex = 10;
+        try {
+            recalculate(new Vector(-2, 2), new Vector(0.2, 0.2));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public void updatePixelPosition() {

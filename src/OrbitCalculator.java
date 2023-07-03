@@ -12,8 +12,9 @@ public class OrbitCalculator extends JFrame implements KeyListener {
     private final Space space = new Space();
     private final Orbiter orbiter = new Orbiter();
     private final Orbit orbit = new Orbit();
-    private int index = 0;
-    private int warp = 1;
+    private int nodeIndex = 0;
+    private int warpIndex = 0;
+    private final int[] warpSpeeds = {1, 5, 10, 50, 100, 500, 1000, 10000, 100000};
     private boolean firing = false;
     private double engineDirection = 0;
     private double fireDirection;
@@ -36,8 +37,9 @@ public class OrbitCalculator extends JFrame implements KeyListener {
 //        orbit.recalculate(new Vector(-2, 2), new Vector(0.2, 0.2)); // ellipse
         orbit.dT = 0.01;
         orbit.skipIndex = 1;
-        //orbit.recalculate(new Vector(-2, 2), new Vector(1.01*Math.pow(2, -0.75), 1.01*Math.pow(2, -0.75))); // escape trajectory
-        orbit.recalculate(new Vector(4.5, 0), new Vector(-0.4, 0.4));
+//        orbit.recalculate(new Vector(-2, 2), new Vector(1.01*Math.pow(2, -0.75), 1.01*Math.pow(2, -0.75))); // escape trajectory
+        orbit.recalculate(new Vector(-4, -3.5), new Vector(0.9, 0.9)); // hyperbolic trajectory
+//        orbit.recalculate(new Vector(4.5, 0), new Vector(-0.4, 0.4));
 
         orbit.updatePixelPosition();
 
@@ -52,27 +54,31 @@ public class OrbitCalculator extends JFrame implements KeyListener {
     }
 
     private final ActionListener update = e -> {
-        index += orbit.skipIndex * warp;
-        if (index >= orbit.numberOfNodes) {
-            index -= orbit.numberOfNodes;
+        nodeIndex += orbit.skipIndex * warpSpeeds[warpIndex];
+        if (nodeIndex >= orbit.numberOfNodes) { // reset nodeIndex if rotation completed
+            nodeIndex -= orbit.numberOfNodes;
         }
+        if (nodeIndex > orbit.positions.size()){ // reset orbit if off the map
+            System.out.println("Orbit reset");
+            orbit.reset();
+            warpIndex = 0;
+        }
+        orbiter.setPosition(orbit.positions.get(nodeIndex));
 
-        orbiter.setPosition(orbit.positions.get(index));
-
-        if (firing && warp == 1) { // engine burn
-            orbiter.setVelocity(new Vector((orbit.positions.get(index).getX() - orbit.positions.get(index-1).getX()) / orbit.dT,
-                    (orbit.positions.get(index).getY() - orbit.positions.get(index-1).getY()) / orbit.dT));
+        if (firing && warpIndex == 0) { // engine burn
+            orbiter.setVelocity(new Vector((orbit.positions.get(nodeIndex).getX() - orbit.positions.get(nodeIndex -1).getX()) / orbit.dT,
+                    (orbit.positions.get(nodeIndex).getY() - orbit.positions.get(nodeIndex -1).getY()) / orbit.dT));
 
             Vector velocity = orbiter.velocity;
             fireDirection = velocity.getAngle() + engineDirection;
 
-            velocity.addFromRadialCoordinates(0.002, fireDirection);
+            velocity.addFromRadialCoordinates(0.004, fireDirection);
             try {
-                orbit.recalculate(orbit.positions.get(index), velocity);
+                orbit.recalculate(orbit.positions.get(nodeIndex), velocity);
             } catch (Exception exception) {
                 exception.printStackTrace();
             }
-            index = 0;
+            nodeIndex = 0;
         }
 
         orbit.updatePixelPosition();
@@ -88,39 +94,36 @@ public class OrbitCalculator extends JFrame implements KeyListener {
     @Override
     public void keyPressed(KeyEvent e) {
         int code = e.getKeyCode();
-        if (code == KeyEvent.VK_UP && warp == 1) { // prograde engine burn
-            firing = true;
-            engineDirection = 0;
+        if (warpIndex == 0){
+            if (code == KeyEvent.VK_UP) { // prograde engine burn
+                firing = true;
+                engineDirection = 0;
+            }
+            if (code == KeyEvent.VK_DOWN) { // retrograde engine burn
+                firing = true;
+                engineDirection = Math.PI;
+            }
+            if (code == KeyEvent.VK_RIGHT) { // radial in / radial out
+                firing = true;
+                engineDirection = 1.5 * Math.PI;
+            }
+            if (code == KeyEvent.VK_LEFT) { // radial in / radial out
+                firing = true;
+                engineDirection = 0.5 * Math.PI;
+            }
         }
-        if (code == KeyEvent.VK_DOWN && warp == 1) { // retrograde engine burn
-            firing = true;
-            engineDirection = Math.PI;
-        }
-        if (code == KeyEvent.VK_RIGHT && warp == 1){ // radial in / radial out
-            firing = true;
-            engineDirection = 1.5*Math.PI;
-        }
-        if (code == KeyEvent.VK_LEFT && warp == 1){ // radial in / radial out
-            firing = true;
-            engineDirection = 0.5*Math.PI;
-        }
+
         if (code == KeyEvent.VK_COMMA){
-            warp = Math.max(1, warp / 10);
-            System.out.println("warp: " + warp);
+            warpIndex = Math.max(0, warpIndex-1);
+            System.out.println("warpSpeed: " + warpSpeeds[warpIndex]);
         }
         if (code == KeyEvent.VK_PERIOD){
-            warp = warp * 10;
-            System.out.println("warp: " + warp);
+            warpIndex = Math.min(warpSpeeds.length, warpIndex+1);
+            System.out.println("warpSpeed: " + warpSpeeds[warpIndex]);
         }
         if (code == KeyEvent.VK_ESCAPE){ // orbit reset button
-            try {
-                orbit.dT = 0.001;
-                orbit.skipIndex = 10;
-                orbit.recalculate(new Vector(-2, 2), new Vector(0.2, 0.2));
-            } catch (Exception exception) {
-                exception.printStackTrace();
-            }
-            warp = 1;
+            orbit.reset();
+            warpIndex = 0;
         }
     }
 
@@ -141,7 +144,7 @@ public class OrbitCalculator extends JFrame implements KeyListener {
             // draw orbiter
             orbiter.draw(g2d);
 
-            // draw celestial body
+            // draw planet
             g2d.drawOval(midX - 20, midY - 20, 40, 40);
 
             // draw extremes
@@ -149,7 +152,7 @@ public class OrbitCalculator extends JFrame implements KeyListener {
             orbit.drawApoapsis(g2d);
 
             // draw engine thrust direction
-            if(firing){
+            if (firing){
                 orbiter.drawThrustVector(g2d, fireDirection);
             }
         }
