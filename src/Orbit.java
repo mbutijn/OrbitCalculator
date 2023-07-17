@@ -2,17 +2,20 @@ import java.awt.*;
 import java.util.ArrayList;
 
 public class Orbit {
-    public ArrayList<Vector> positions = new ArrayList<>();
-    public ArrayList<Integer> x_int = new ArrayList<>();
-    public ArrayList<Integer> y_int = new ArrayList<>();
-    public Vector periapsis = new Vector(0, 0);
-    public Vector apoapsis = new Vector(0, 0);
+    public ArrayList<Vector> positionsWrtCb = new ArrayList<>();
+    private final ArrayList<Integer> x_int = new ArrayList<>();
+    private final ArrayList<Integer> y_int = new ArrayList<>();
+    private final Vector periapsis = new Vector(0, 0);
+    private final Vector apoapsis = new Vector(0, 0);
     public double dT = 0.001;
     public int numberOfNodes, skipIndex = 10;
-    private final Planet planet;
+    final Planet planet;
+    public boolean isOnEscapePath;
+    public double SOI;
 
     public Orbit(Planet planet){
         this.planet = planet;
+        SOI = 1.0;
     }
 
     public void recalculate(Vector currentPosition, Vector start_velocity) throws Exception {
@@ -30,7 +33,7 @@ public class Orbit {
         if (currentPosition.getX() < 0 && currentPosition.getAngle() * secondPosition.getAngle() < 0) {
             CCW = !CCW; // correct for bug at values of angle around pi and -pi
         }
-        // System.out.println("staticOrbit is counter clockwise: " + CCW);
+        // System.out.println("orbit is counter clockwise: " + CCW);
 
         double s = (r_start + distance + r_2) / 2; // semi-perimeter triangle
         double tw_area = 2 * Math.sqrt(s * (s - r_start) * (s - distance) * (s - r_2));
@@ -108,23 +111,22 @@ public class Orbit {
             dT = 0.01;
             skipIndex = 1;
         } else { // a >= 75
-//            throw new Exception("semi major axis too large");
+            //throw new Exception("semi major axis too large");
         }
 
         // Make the orbital trajectory
         double nu = nu_start;
         double omega = 0;
         double r = r_start;
-        double SOI = 6;
         boolean switched = false;
-        positions.clear();
+        positionsWrtCb.clear();
 
         if (a > 0) { // ellipse
             apoapsis.setVectorFromRadiusAndAngle(Ra, periapsis_angle + Math.PI);
             double nu_end;
             if (CCW) {
-                nu_end = nu_start + 2 * Math.PI + dT * omega;
-                while (nu < nu_end && r < SOI) {
+                nu_end = nu_start + 2 * Math.PI;
+                while (nu < nu_end + dT * omega && r < SOI) {
                     if (r < planet.radius && !switched){
                         nu = -nu;
                         switched = true;
@@ -132,12 +134,12 @@ public class Orbit {
                         r = l / (1 + e * Math.cos(nu));
                         omega = dAdt / (r * r);
                         nu += omega * dT;
-                        positions.add(new Vector(r, periapsis_angle + nu, true));
+                        positionsWrtCb.add(new Vector(r, periapsis_angle + nu, true));
                     }
                 }
             } else {
-                nu_end = nu_start - 2 * Math.PI - dT * omega;
-                while (nu > nu_end && r < SOI) {
+                nu_end = nu_start - 2 * Math.PI;
+                while (nu > nu_end - dT * omega && r < SOI) {
                     if (r < planet.radius && !switched){
                         nu = -nu;
                         switched = true;
@@ -145,7 +147,7 @@ public class Orbit {
                         r = l / (1 + e * Math.cos(nu));
                         omega = dAdt / (r * r);
                         nu -= omega * dT;
-                        positions.add(new Vector(r, periapsis_angle + nu, true));
+                        positionsWrtCb.add(new Vector(r, periapsis_angle + nu, true));
                     }
                 }
             }
@@ -162,12 +164,17 @@ public class Orbit {
                     } else {
                         nu -= omega * dT;
                     }
-                    positions.add(new Vector(r, periapsis_angle + nu, true));
+                    positionsWrtCb.add(new Vector(r, periapsis_angle + nu, true));
                 }
             }
         }
 
-        numberOfNodes = positions.size();
+        isOnEscapePath = r > SOI;
+        if (isOnEscapePath){
+            System.out.println("Orbit is on escape path: " + isOnEscapePath);
+        }
+
+        numberOfNodes = positionsWrtCb.size();
         System.out.println("numberOfNodes: " + numberOfNodes);
     }
 
@@ -177,14 +184,29 @@ public class Orbit {
         }
     }
 
-    public void drawPeriapsis(int x_mid, int y_mid, Graphics2D g2d) {
+    public void drawExtremes(Graphics2D g2d){
+        int x_mid;
+        int y_mid;
+        if (Spacecraft.orbitsSun){
+            x_mid = OrbitCalculator.x_sun;
+            y_mid = OrbitCalculator.y_sun;
+        } else {
+            x_mid = planet.x_int;
+            y_mid = planet.y_int;
+        }
+
+        drawPeriapsis(g2d, x_mid, y_mid);
+        drawApoapsis(g2d, x_mid, y_mid);
+    }
+
+    public void drawPeriapsis(Graphics2D g2d, int x_mid, int y_mid) {
         int x = x_mid + (int) (OrbitCalculator.scaleFactor * periapsis.getX());
         int y = y_mid - (int) (OrbitCalculator.scaleFactor * periapsis.getY());
         g2d.fillOval(x-3, y-3, 6 ,6);
         g2d.drawString(String.format("Pe: %.3f", periapsis.abs), x, y-5);
     }
 
-    public void drawApoapsis(int x_mid, int y_mid, Graphics2D g2d) {
+    public void drawApoapsis(Graphics2D g2d, int x_mid, int y_mid) {
         int x = x_mid + (int) (OrbitCalculator.scaleFactor * apoapsis.getX());
         int y = y_mid - (int) (OrbitCalculator.scaleFactor * apoapsis.getY());
         g2d.fillOval(x-3, y-3, 6 ,6);
@@ -192,10 +214,14 @@ public class Orbit {
     }
 
     public void reset(){
+        System.out.println("Orbit reset");
         dT = 0.001;
         skipIndex = 10;
+        isOnEscapePath = false;
+        SOI = 1.0;
+
         try {
-            recalculate(new Vector(-2, 2), new Vector(0.2, 0.2));
+            recalculate(new Vector(0.5, 0.3), new Vector(0.4, -1.1));
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -205,8 +231,13 @@ public class Orbit {
         x_int.clear();
         y_int.clear();
         for (int i = 0; i < numberOfNodes; i++) {
-            x_int.add(planet.x_int + (int) (OrbitCalculator.scaleFactor * positions.get(i).getX()));
-            y_int.add(planet.y_int - (int) (OrbitCalculator.scaleFactor * positions.get(i).getY()));
+            if (Spacecraft.orbitsSun){
+                x_int.add(OrbitCalculator.x_sun + (int) (OrbitCalculator.scaleFactor * positionsWrtCb.get(i).getX()));
+                y_int.add(OrbitCalculator.y_sun  - (int) (OrbitCalculator.scaleFactor * positionsWrtCb.get(i).getY()));
+            } else {
+                x_int.add(planet.x_int + (int) (OrbitCalculator.scaleFactor * positionsWrtCb.get(i).getX()));
+                y_int.add(planet.y_int - (int) (OrbitCalculator.scaleFactor * positionsWrtCb.get(i).getY()));
+            }
         }
     }
 }

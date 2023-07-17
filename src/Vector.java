@@ -1,5 +1,6 @@
 public class Vector {
-    double x, y, abs;
+    private double x, y;
+    double abs;
 
     Vector(double x, double y){
         this.x = x;

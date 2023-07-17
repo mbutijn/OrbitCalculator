@@ -1,10 +1,8 @@
 import java.awt.*;
 
-public class Planet extends OrbitObject {
+public class Planet extends Orbiter {
     public double radius;
-    public int radius_int;
-    public Vector position = new Vector(0, 0);
-
+    private final int radius_int;
     public StaticOrbit staticOrbit;
 
     public Planet(){
@@ -14,7 +12,7 @@ public class Planet extends OrbitObject {
     }
 
     public void update(double dt){
-        double timeStep = dt * OrbitObject.getWarpSpeed();
+        double timeStep = dt * Orbiter.getWarpSpeed();
         position = staticOrbit.updatePositionPlanet(timeStep);
 
         velocity.setX((position.getX() - oldPosition.getX()) / timeStep);
