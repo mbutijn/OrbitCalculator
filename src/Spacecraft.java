@@ -5,30 +5,24 @@ public class Spacecraft extends Orbiter {
     private int nodeIndex = 0;
     public boolean engineAcceleration = false;
     private double engineModeDirection = 0;
-    public static boolean orbitsSun = false;
     private double accelerationDirection;
 
-    public Spacecraft(Planet planet){
-        orbit = new Orbit(planet);
+    public Spacecraft(CelestialBody celestialBody){
+        orbit = new Orbit(celestialBody);
     }
 
     public void update(){
         nodeIndex += orbit.skipIndex * WARP_SPEEDS[warpIndex];
 
         if (orbit.isOnEscapePath && nodeIndex >= orbit.numberOfNodes){ // Spacecrafts starts to orbit the sun
-            System.out.println("The spacecraft is now leaving the planet's SOI");
-            orbitsSun = true;
+            System.out.println("The spacecraft is now leaving the celestialBody's SOI");
             orbit.isOnEscapePath = false;
-
             Vector position_tot = new Vector((double) (x_int - OrbitCalculator.x_sun) / OrbitCalculator.scaleFactor,
                     (double) (OrbitCalculator.y_sun - y_int) / OrbitCalculator.scaleFactor);
 
-            Vector velocity_tot = velocity.add(orbit.planet.velocity);
+            Vector velocity_tot = velocity.add(orbit.celestialBody.velocity);
 
-            System.out.println("position_tot: " + position_tot.getX() + ", " + position_tot.getY());
-            System.out.println("velocity_tot: " + velocity_tot.getX() + ", " + velocity_tot.getY());
-
-            orbit.SOI = 10;
+            orbit.celestialBody = OrbitCalculator.getSun();
 
             try {
                 orbit.recalculate(position_tot, velocity_tot);
@@ -40,23 +34,17 @@ public class Spacecraft extends Orbiter {
             return;
         }
 
-        if (nodeIndex >= orbit.numberOfNodes) { // reset nodeIndex after every rotation completed
-            nodeIndex -= orbit.numberOfNodes;
+        if (!orbit.isOnEscapePath && nodeIndex >= orbit.numberOfNodes) { // reset nodeIndex after every rotation completed
+            nodeIndex = nodeIndex % orbit.numberOfNodes; // prevent out of bounds exception
         }
-//        if (nodeIndex > orbit.positionsWrtCb.size()){ // prevent out of bounds exception
-//            System.out.println("Orbit out of indices");
-//            reset();
-//        }
 
         setPosition(orbit.positionsWrtCb.get(nodeIndex));
+        setOldPosition(orbit.positionsWrtCb.get(nodeIndex - 1));
+        updateVelocity(orbit.dT);
 
         if (engineAcceleration && Orbiter.warpIndex == 0) { // engine burn
 
-            setOldPosition(orbit.positionsWrtCb.get(nodeIndex - 1));
-            updateVelocity(orbit.dT);
-
             accelerationDirection = velocity.getAngle() + engineModeDirection;
-
             velocity.addFromRadialCoordinates(0.004, accelerationDirection);
             try {
                 orbit.recalculate(position, velocity);
@@ -79,13 +67,8 @@ public class Spacecraft extends Orbiter {
     public void updatePixelPosition() {
         orbit.updatePixelPosition();
 
-        if (orbitsSun){
-            x_int = OrbitCalculator.x_sun + (int) Math.round(OrbitCalculator.scaleFactor * position.getX());
-            y_int = OrbitCalculator.y_sun - (int) Math.round(OrbitCalculator.scaleFactor * position.getY());
-        } else {
-            x_int = orbit.planet.x_int + (int) Math.round(OrbitCalculator.scaleFactor * position.getX());
-            y_int = orbit.planet.y_int - (int) Math.round(OrbitCalculator.scaleFactor * position.getY());
-        }
+        x_int = orbit.celestialBody.x_int + (int) Math.round(OrbitCalculator.scaleFactor * position.getX());
+        y_int = orbit.celestialBody.y_int - (int) Math.round(OrbitCalculator.scaleFactor * position.getY());
     }
 
     public void draw(Graphics2D g2d) {
@@ -114,7 +97,6 @@ public class Spacecraft extends Orbiter {
 
     public void reset(){
         orbit.reset();
-        orbitsSun = false;
         nodeIndex = 0;
         warpIndex = 0;
     }

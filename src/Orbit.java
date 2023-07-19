@@ -8,14 +8,12 @@ public class Orbit {
     private final Vector periapsis = new Vector(0, 0);
     private final Vector apoapsis = new Vector(0, 0);
     public double dT = 0.001;
-    public int numberOfNodes, skipIndex = 10;
-    final Planet planet;
+    public int numberOfNodes, skipIndex = 50;
+    CelestialBody celestialBody;
     public boolean isOnEscapePath;
-    public double SOI;
 
-    public Orbit(Planet planet){
-        this.planet = planet;
-        SOI = 1.0;
+    public Orbit(CelestialBody celestialBody){
+        this.celestialBody = celestialBody;
     }
 
     public void recalculate(Vector currentPosition, Vector start_velocity) throws Exception {
@@ -39,7 +37,7 @@ public class Orbit {
         double tw_area = 2 * Math.sqrt(s * (s - r_start) * (s - distance) * (s - r_2));
 
         // vis viva equation
-        double a = r_start / (2 - r_start * v_start_abs2); // semi-major axis (V_esc = 1/(4th_root(2)) ~ 0.8409 m/s)
+        double a = r_start / (2 - (r_start * v_start_abs2 / celestialBody.mu)); // semi-major axis (V_esc = 1/(4th_root(2)) ~ 0.8409 m/s)
          System.out.println("a: " + a);
 
         double dAdt = tw_area / dT; // twice area swept over time
@@ -50,7 +48,7 @@ public class Orbit {
             double v_start_t = tw_area / (r_start * dT); // tangential component of velocity vector
             double v_start_t2 = v_start_t * v_start_t;
 
-            e2 = (Math.pow(r_start * v_start_abs2 - 1, 2) * v_start_t2 + (v_start_abs2 - v_start_t2)) / v_start_abs2;  // eccentricity squared
+            e2 = (Math.pow((r_start * v_start_abs2 / celestialBody.mu) - 1, 2) * v_start_t2 + (v_start_abs2 - v_start_t2)) / v_start_abs2;  // eccentricity squared
             e = Math.sqrt(e2); // eccentricity
             // System.out.println("e: " + e);
 
@@ -103,13 +101,13 @@ public class Orbit {
         // Update dT for resolutions issues
         if (a < 0) { // hyperbola
             dT = 0.01;
-            skipIndex = 1;
+            skipIndex = 5;
         } else if (a > 0 && a < 3) { // small ellipse
             dT = 0.001;
-            skipIndex = 10;
+            skipIndex = 50;
         } else if (a >= 3 && a < 75) { // large ellipse
             dT = 0.01;
-            skipIndex = 1;
+            skipIndex = 5;
         } else { // a >= 75
             //throw new Exception("semi major axis too large");
         }
@@ -126,8 +124,8 @@ public class Orbit {
             double nu_end;
             if (CCW) {
                 nu_end = nu_start + 2 * Math.PI;
-                while (nu < nu_end + dT * omega && r < SOI) {
-                    if (r < planet.radius && !switched){
+                while (nu < nu_end + dT * omega && r < celestialBody.SOI) {
+                    if (r < celestialBody.radius && !switched){
                         nu = -nu;
                         switched = true;
                     } else {
@@ -139,8 +137,8 @@ public class Orbit {
                 }
             } else {
                 nu_end = nu_start - 2 * Math.PI;
-                while (nu > nu_end - dT * omega && r < SOI) {
-                    if (r < planet.radius && !switched){
+                while (nu > nu_end - dT * omega && r < celestialBody.SOI) {
+                    if (r < celestialBody.radius && !switched){
                         nu = -nu;
                         switched = true;
                     } else {
@@ -152,8 +150,8 @@ public class Orbit {
                 }
             }
         } else { // hyperbolic trajectory
-            while (r < SOI) {
-                if (r < planet.radius && !switched){
+            while (r < celestialBody.SOI) {
+                if (r < celestialBody.radius && !switched){
                     nu = -nu;
                     switched = true;
                 } else {
@@ -169,9 +167,9 @@ public class Orbit {
             }
         }
 
-        isOnEscapePath = r > SOI;
+        isOnEscapePath = r > celestialBody.SOI;
         if (isOnEscapePath){
-            System.out.println("Orbit is on escape path: " + isOnEscapePath);
+            System.out.println("Orbit is on escape path");
         }
 
         numberOfNodes = positionsWrtCb.size();
@@ -184,31 +182,16 @@ public class Orbit {
         }
     }
 
-    public void drawExtremes(Graphics2D g2d){
-        int x_mid;
-        int y_mid;
-        if (Spacecraft.orbitsSun){
-            x_mid = OrbitCalculator.x_sun;
-            y_mid = OrbitCalculator.y_sun;
-        } else {
-            x_mid = planet.x_int;
-            y_mid = planet.y_int;
-        }
-
-        drawPeriapsis(g2d, x_mid, y_mid);
-        drawApoapsis(g2d, x_mid, y_mid);
-    }
-
-    public void drawPeriapsis(Graphics2D g2d, int x_mid, int y_mid) {
-        int x = x_mid + (int) (OrbitCalculator.scaleFactor * periapsis.getX());
-        int y = y_mid - (int) (OrbitCalculator.scaleFactor * periapsis.getY());
+    public void drawPeriapsis(Graphics2D g2d) {
+        int x = celestialBody.x_int + (int) (OrbitCalculator.scaleFactor * periapsis.getX());
+        int y = celestialBody.y_int - (int) (OrbitCalculator.scaleFactor * periapsis.getY());
         g2d.fillOval(x-3, y-3, 6 ,6);
         g2d.drawString(String.format("Pe: %.3f", periapsis.abs), x, y-5);
     }
 
-    public void drawApoapsis(Graphics2D g2d, int x_mid, int y_mid) {
-        int x = x_mid + (int) (OrbitCalculator.scaleFactor * apoapsis.getX());
-        int y = y_mid - (int) (OrbitCalculator.scaleFactor * apoapsis.getY());
+    public void drawApoapsis(Graphics2D g2d) {
+        int x = celestialBody.x_int + (int) (OrbitCalculator.scaleFactor * apoapsis.getX());
+        int y = celestialBody.y_int - (int) (OrbitCalculator.scaleFactor * apoapsis.getY());
         g2d.fillOval(x-3, y-3, 6 ,6);
         g2d.drawString(String.format("Ap: %.3f", apoapsis.abs), x, y-5);
     }
@@ -216,12 +199,13 @@ public class Orbit {
     public void reset(){
         System.out.println("Orbit reset");
         dT = 0.001;
-        skipIndex = 10;
+        skipIndex = 50;
         isOnEscapePath = false;
-        SOI = 1.0;
+
+        celestialBody = OrbitCalculator.getPlanet();
 
         try {
-            recalculate(new Vector(0.5, 0.3), new Vector(0.4, -1.1));
+            recalculate(new Vector(0.5, 0.3), new Vector(0.12, -0.33));
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -231,13 +215,8 @@ public class Orbit {
         x_int.clear();
         y_int.clear();
         for (int i = 0; i < numberOfNodes; i++) {
-            if (Spacecraft.orbitsSun){
-                x_int.add(OrbitCalculator.x_sun + (int) (OrbitCalculator.scaleFactor * positionsWrtCb.get(i).getX()));
-                y_int.add(OrbitCalculator.y_sun  - (int) (OrbitCalculator.scaleFactor * positionsWrtCb.get(i).getY()));
-            } else {
-                x_int.add(planet.x_int + (int) (OrbitCalculator.scaleFactor * positionsWrtCb.get(i).getX()));
-                y_int.add(planet.y_int - (int) (OrbitCalculator.scaleFactor * positionsWrtCb.get(i).getY()));
-            }
+            x_int.add(celestialBody.x_int + (int) (OrbitCalculator.scaleFactor * positionsWrtCb.get(i).getX()));
+            y_int.add(celestialBody.y_int - (int) (OrbitCalculator.scaleFactor * positionsWrtCb.get(i).getY()));
         }
     }
 }

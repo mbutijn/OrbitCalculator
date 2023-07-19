@@ -10,7 +10,8 @@ public class OrbitCalculator extends JFrame implements KeyListener {
     public static final int y_sun = yBound / 2;
     public static final int scaleFactor = 100;
     private final Space space = new Space();
-    private final Planet planet = new Planet();
+    public final static Planet planet = new Planet(0.1,0.8, 0.1);
+    public final static Star sun = new Star(x_sun, y_sun, 0.2, 10, 1.0);
     private final Spacecraft spacecraft = new Spacecraft(planet);
     private Timer timer;
 
@@ -29,12 +30,7 @@ public class OrbitCalculator extends JFrame implements KeyListener {
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         setKeyBoardListeners();
 
-        spacecraft.orbit.recalculate(new Vector(0.5, 0.3), new Vector(0.4, -1.1)); // ellipse
-//        orbiter.orbit.recalculate(new Vector(-2, 2), new Vector(1.01*Math.pow(2, -0.75), 1.01*Math.pow(2, -0.75))); // escape trajectory
-//        orbiter.orbit.recalculate(new Vector(-4, -4), new Vector(-0.9, -0.9)); // hyperbolic trajectory
-//        orbiter.orbit.recalculate(new Vector(4.5, 0), new Vector(-0.4, 0.4));
-
-        Orbiter.warpIndex = 0;
+        spacecraft.orbit.recalculate(new Vector(0.5, 0.3), new Vector(0.12, -0.33)); // ellipse
         spacecraft.orbit.updatePixelPosition();
 
         // start the simulation
@@ -46,6 +42,14 @@ public class OrbitCalculator extends JFrame implements KeyListener {
         setFocusable(true);
         requestFocusInWindow();
         addKeyListener(this);
+    }
+
+    public static Star getSun(){
+        return sun;
+    }
+
+    public static Planet getPlanet(){
+        return planet;
     }
 
     private final ActionListener update = e -> {
@@ -72,10 +76,10 @@ public class OrbitCalculator extends JFrame implements KeyListener {
             if (code == KeyEvent.VK_DOWN) { // retrograde engine burn
                 spacecraft.fireRetrograde();
             }
-            if (code == KeyEvent.VK_RIGHT) { // radial in / radial out
+            if (code == KeyEvent.VK_RIGHT) { // radial in or radial out
                 spacecraft.fireRight();
             }
-            if (code == KeyEvent.VK_LEFT) { // radial in / radial out
+            if (code == KeyEvent.VK_LEFT) { // radial in or radial out
                 spacecraft.fireLeft();
             }
         }
@@ -120,14 +124,15 @@ public class OrbitCalculator extends JFrame implements KeyListener {
             // draw orbiter
             spacecraft.draw(g2d);
 
-            // draw planet
+            // draw celestialBody
             planet.draw(g2d);
 
             // draw sun
-            g2d.drawOval(x_sun - 20, y_sun - 20, 40, 40);
+            sun.draw(g2d);
 
             // draw extremes
-            spacecraft.orbit.drawExtremes(g2d);
+            spacecraft.orbit.drawPeriapsis(g2d);
+            spacecraft.orbit.drawApoapsis(g2d);
 
             // draw engine thrust direction
             spacecraft.drawThrustVector(g2d);
