@@ -45,13 +45,16 @@ public class Vector {
         return new Vector(this.getX()+vector.getX(), this.getY()+vector.getY());
     }
 
-    public Vector add(double x, double y){
+    public void add(double x, double y){
         this.x += x;
         this.y += y;
-        return this;
     }
 
-    public Vector addFromRadialCoordinates(double radius, double angle){
-        return add(radius * Math.cos(angle), radius * Math.sin(angle));
+    public Vector subtract(Vector vector){
+        return new Vector(this.getX()-vector.getX(), this.getY()- vector.getY());
+    }
+
+    public void addFromRadialCoordinates(double radius, double angle){
+        add(radius * Math.cos(angle), radius * Math.sin(angle));
     }
 }

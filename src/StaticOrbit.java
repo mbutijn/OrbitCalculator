@@ -1,18 +1,21 @@
 public class StaticOrbit {
     private final double l, e, dAdt, periapsis_angle;
     double nu;
+    public Vector position;
 
-    public StaticOrbit(double mu){
+    public StaticOrbit(){
         double a = 3.0;
         e = 0.3;
         double e2 = e * e;
         double b = a * Math.sqrt(1 - e2);
-        double period = 2 * Math.PI * Math.sqrt(a*a*a / mu);
+        double period = 2 * Math.PI * Math.sqrt(a*a*a / OrbitCalculator.getSun().mu);
         l = a * (1 - e2);
 
         nu = 0;
-        dAdt = Math.PI * a * b / period;
+        dAdt = 2 * Math.PI * a * b / period;
         periapsis_angle = 0;
+
+        position = new Vector(0, 0);
     }
 
     public Vector updatePosition(double timeStep){
@@ -22,7 +25,10 @@ public class StaticOrbit {
         if (nu > 2 * Math.PI){
             nu -= 2 * Math.PI;
         }
-        return new Vector(r, periapsis_angle + nu, true);
+
+        position.setVectorFromRadiusAndAngle(r, periapsis_angle + nu);
+
+        return position;
     }
 
 }

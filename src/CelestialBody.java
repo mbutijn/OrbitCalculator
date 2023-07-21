@@ -14,8 +14,8 @@ public class CelestialBody extends Orbiter{
     }
 
     public void updatePixelPosition() {
-        x_int = OrbitCalculator.x_sun + (int) Math.round(OrbitCalculator.scaleFactor * position.getX());
-        y_int = OrbitCalculator.y_sun - (int) Math.round(OrbitCalculator.scaleFactor * position.getY());
+        x_int = OrbitCalculator.getSun().x_int + (int) Math.round(OrbitCalculator.scaleFactor * position.getX());
+        y_int = OrbitCalculator.getSun().y_int - (int) Math.round(OrbitCalculator.scaleFactor * position.getY());
     }
 
     public void draw(Graphics2D g2d){

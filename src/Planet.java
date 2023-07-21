@@ -3,7 +3,7 @@ public class Planet extends CelestialBody {
 
     public Planet(double radius, double SOI, double mu){
         super(radius, SOI, mu);
-        staticOrbit = new StaticOrbit(mu);
+        staticOrbit = new StaticOrbit();
     }
 
     public void update(double dt){
@@ -16,6 +16,10 @@ public class Planet extends CelestialBody {
         oldPosition.setX(position.getX());
         oldPosition.setY(position.getY());
 
+    }
+
+    public void reset(){
+        staticOrbit.nu = 0;
     }
 
 }

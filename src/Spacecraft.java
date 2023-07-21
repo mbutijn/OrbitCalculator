@@ -13,46 +13,70 @@ public class Spacecraft extends Orbiter {
 
     public void update(){
         nodeIndex += orbit.skipIndex * WARP_SPEEDS[warpIndex];
-
-        if (orbit.isOnEscapePath && nodeIndex >= orbit.numberOfNodes){ // Spacecrafts starts to orbit the sun
-            System.out.println("The spacecraft is now leaving the celestialBody's SOI");
+        // Check for escape planet SOI
+        if (orbit.celestialBody == OrbitCalculator.getPlanet() && orbit.isOnEscapePath && nodeIndex >= orbit.numberOfNodes){
+            System.out.println("The spacecraft is now leaving the planet's SOI"); // Spacecrafts starts to orbit the sun
             orbit.isOnEscapePath = false;
-            Vector position_tot = new Vector((double) (x_int - OrbitCalculator.x_sun) / OrbitCalculator.scaleFactor,
-                    (double) (OrbitCalculator.y_sun - y_int) / OrbitCalculator.scaleFactor);
+            Star sun = OrbitCalculator.getSun();
+            Vector positionAtEscape = new Vector((double) (this.x_int - sun.x_int) / OrbitCalculator.scaleFactor,
+                    (double) (sun.y_int - this.y_int) / OrbitCalculator.scaleFactor);
 
-            Vector velocity_tot = velocity.add(orbit.celestialBody.velocity);
+            Vector velocityAtEscape = velocity.add(orbit.celestialBody.velocity);
 
-            orbit.celestialBody = OrbitCalculator.getSun();
-
-            try {
-                orbit.recalculate(position_tot, velocity_tot);
-                orbit.isOnEscapePath = false;
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            nodeIndex = 0;
+            orbit.celestialBody = sun;
+            recalculateOrbit(positionAtEscape, velocityAtEscape);
             return;
         }
 
+        // check for encounter planet's SOI
+        if (orbit.celestialBody == OrbitCalculator.getSun()) {
+            Planet planet = OrbitCalculator.getPlanet();
+            Vector positionAtEncounter = new Vector((double) (this.x_int - planet.x_int) / OrbitCalculator.scaleFactor,
+                    (double) (planet.y_int - this.y_int) / OrbitCalculator.scaleFactor);
+
+            if (positionAtEncounter.getAbs() < planet.SOI) {
+                System.out.println("Spacecraft is now encountering the planet");
+                Vector velocityAtEncounter = velocity.subtract(planet.velocity);
+
+                orbit.celestialBody = planet;
+                recalculateOrbit(positionAtEncounter, velocityAtEncounter);
+                return;
+            }
+        }
+
         if (!orbit.isOnEscapePath && nodeIndex >= orbit.numberOfNodes) { // reset nodeIndex after every rotation completed
-            nodeIndex = nodeIndex % orbit.numberOfNodes; // prevent out of bounds exception
+            nodeIndex = nodeIndex % orbit.numberOfNodes;
+        }
+
+        if (nodeIndex >= orbit.numberOfNodes - 1){
+            reset(); // prevents out of bounds exception
+            OrbitCalculator.getPlanet().reset();
+            return;
         }
 
         setPosition(orbit.positionsWrtCb.get(nodeIndex));
-        setOldPosition(orbit.positionsWrtCb.get(nodeIndex - 1));
+        if (nodeIndex == 0){
+            setOldPosition(orbit.positionsWrtCb.get(orbit.numberOfNodes));
+        } else {
+            setOldPosition(orbit.positionsWrtCb.get(nodeIndex - 1));
+        }
         updateVelocity(orbit.dT);
 
         if (engineAcceleration && Orbiter.warpIndex == 0) { // engine burn
 
             accelerationDirection = velocity.getAngle() + engineModeDirection;
             velocity.addFromRadialCoordinates(0.004, accelerationDirection);
-            try {
-                orbit.recalculate(position, velocity);
-            } catch (Exception exception) {
-                exception.printStackTrace();
-            }
-            nodeIndex = 0;
+            recalculateOrbit(position, velocity);
         }
+    }
+
+    public void recalculateOrbit(Vector position, Vector velocity){
+        try {
+            orbit.recalculate(position, velocity);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        nodeIndex = 0;
     }
 
     public void setPosition(Vector position){
@@ -72,7 +96,7 @@ public class Spacecraft extends Orbiter {
     }
 
     public void draw(Graphics2D g2d) {
-        g2d.drawRect(x_int - 2, y_int - 2, 4,4);
+        g2d.fillRect(x_int - 2, y_int - 2, 4,4);
     }
 
     public void drawThrustVector(Graphics2D g2d){
@@ -96,6 +120,7 @@ public class Spacecraft extends Orbiter {
     }
 
     public void reset(){
+        System.out.println("Spacecraft reset");
         orbit.reset();
         nodeIndex = 0;
         warpIndex = 0;

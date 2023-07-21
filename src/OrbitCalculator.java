@@ -6,35 +6,34 @@ import java.awt.event.KeyListener;
 
 public class OrbitCalculator extends JFrame implements KeyListener {
     private final static int xBound = 1024, yBound = 768;
-    public static final int x_sun = xBound / 2;
-    public static final int y_sun = yBound / 2;
     public static final int scaleFactor = 100;
     private final Space space = new Space();
-    public final static Planet planet = new Planet(0.1,0.8, 0.1);
-    public final static Star sun = new Star(x_sun, y_sun, 0.2, 10, 1.0);
+    public final static Star sun = new Star(xBound / 2, yBound / 2, 0.2, 10, 0.5);
+    public final static Planet planet = new Planet(0.1,0.8, 0.05);
     private final Spacecraft spacecraft = new Spacecraft(planet);
     private Timer timer;
+    public final static double timeStep = 0.05;
 
     public OrbitCalculator(String title) {
         this.setTitle(title);
     }
 
-    public static void main (String[] args) throws Exception {
-        new OrbitCalculator("Orbit Calculator").start();
+    public static void main (String[] args) {
+        new OrbitCalculator("Orbit Simulator").start();
     }
 
-    public void start() throws Exception {
+    public void start() {
         setVisible(true);
         setSize(xBound, yBound);
         setContentPane(space);
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         setKeyBoardListeners();
 
-        spacecraft.orbit.recalculate(new Vector(0.5, 0.3), new Vector(0.12, -0.33)); // ellipse
+        spacecraft.orbit.recalculate(new Vector(0.25, 0.25), new Vector(0.27, -0.27)); // ellipse
         spacecraft.orbit.updatePixelPosition();
 
         // start the simulation
-        timer = new Timer(50, update);
+        timer = new Timer((int) (1000 * timeStep), update);
         timer.start(); // dt = 50 ms -> f_s = 20 Hz
     }
 
@@ -53,7 +52,7 @@ public class OrbitCalculator extends JFrame implements KeyListener {
     }
 
     private final ActionListener update = e -> {
-        planet.update(0.05);
+        planet.update(timeStep);
         spacecraft.update();
 
         planet.updatePixelPosition();
@@ -100,10 +99,9 @@ public class OrbitCalculator extends JFrame implements KeyListener {
             }
         }
         if (code == KeyEvent.VK_SPACE){ // orbits reset button
-            System.out.println("staticOrbit reset");
+            System.out.println("Reset rimulation");
             spacecraft.reset();
-            planet.staticOrbit.nu = 0;
-            Orbiter.warpIndex = 0;
+            planet.reset();
         }
     }
 
@@ -133,6 +131,7 @@ public class OrbitCalculator extends JFrame implements KeyListener {
             // draw extremes
             spacecraft.orbit.drawPeriapsis(g2d);
             spacecraft.orbit.drawApoapsis(g2d);
+            spacecraft.orbit.drawSOI(g2d);
 
             // draw engine thrust direction
             spacecraft.drawThrustVector(g2d);
