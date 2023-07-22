@@ -48,7 +48,7 @@ public class Spacecraft extends Orbiter {
             nodeIndex = nodeIndex % orbit.numberOfNodes;
         }
 
-        if (nodeIndex >= orbit.numberOfNodes - 1){
+        if (nodeIndex >= orbit.numberOfNodes){
             reset(); // prevents out of bounds exception
             OrbitCalculator.getPlanet().reset();
             return;
@@ -56,7 +56,7 @@ public class Spacecraft extends Orbiter {
 
         setPosition(orbit.positionsWrtCb.get(nodeIndex));
         if (nodeIndex == 0){
-            setOldPosition(orbit.positionsWrtCb.get(orbit.numberOfNodes));
+            setOldPosition(orbit.positionsWrtCb.get(orbit.numberOfNodes - 1));
         } else {
             setOldPosition(orbit.positionsWrtCb.get(nodeIndex - 1));
         }

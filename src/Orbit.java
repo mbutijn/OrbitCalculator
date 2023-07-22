@@ -7,7 +7,7 @@ public class Orbit {
     private final ArrayList<Integer> y_ints = new ArrayList<>();
     private final Vector periapsis = new Vector(0, 0);
     private final Vector apoapsis = new Vector(0, 0);
-    public double dT = 0.001;
+    public final double dT = 0.001;
     public int numberOfNodes, skipIndex = (int) (1000 * OrbitCalculator.timeStep);
     CelestialBody celestialBody;
     public boolean isOnEscapePath;
@@ -17,9 +17,9 @@ public class Orbit {
     }
 
     public void recalculate(Vector currentPosition, Vector start_velocity) {
-        double r_start = currentPosition.getAbs(); // ~ 2.828 m (case 1)
+        double r_start = currentPosition.getAbs();
         double angle_start = currentPosition.getAngle();
-        double v_start_abs = start_velocity.getAbs(); // ~ 0.2828 m/s (case 1)
+        double v_start_abs = start_velocity.getAbs();
         double v_start_abs2 = v_start_abs * v_start_abs;
 
         Vector positionChange = new Vector(dT * start_velocity.getX(), dT * start_velocity.getY());
@@ -81,7 +81,7 @@ public class Orbit {
         if (descending == CCW) {
             nu_start = 2 * Math.PI - nu_start; // true anomaly
         }
-        nu_start = nu_start > Math.PI ? nu_start - 2 * Math.PI : nu_start;
+        nu_start = nu_start > Math.PI ? nu_start - 2 * Math.PI : nu_start < -Math.PI ? nu_start + 2 * Math.PI : nu_start;
 
         // System.out.println("nu_start: " + Math.toDegrees(nu_start));
 
@@ -197,7 +197,6 @@ public class Orbit {
 
     public void reset(){
         System.out.println("Orbit reset");
-        dT = 0.001;
         skipIndex = (int) (1000 * OrbitCalculator.timeStep);
         isOnEscapePath = false;
 

@@ -34,7 +34,7 @@ public class OrbitCalculator extends JFrame implements KeyListener {
 
         // start the simulation
         timer = new Timer((int) (1000 * timeStep), update);
-        timer.start(); // dt = 50 ms -> f_s = 20 Hz
+        timer.start(); // timeStep = 50 ms -> f_s = 20 Hz
     }
 
     private void setKeyBoardListeners() {
@@ -99,7 +99,7 @@ public class OrbitCalculator extends JFrame implements KeyListener {
             }
         }
         if (code == KeyEvent.VK_SPACE){ // orbits reset button
-            System.out.println("Reset rimulation");
+            System.out.println("Reset simulation");
             spacecraft.reset();
             planet.reset();
         }
@@ -131,6 +131,8 @@ public class OrbitCalculator extends JFrame implements KeyListener {
             // draw extremes
             spacecraft.orbit.drawPeriapsis(g2d);
             spacecraft.orbit.drawApoapsis(g2d);
+
+            // draw SOI
             spacecraft.orbit.drawSOI(g2d);
 
             // draw engine thrust direction
