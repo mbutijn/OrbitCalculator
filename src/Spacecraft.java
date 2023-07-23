@@ -13,10 +13,10 @@ public class Spacecraft extends Orbiter {
 
     public void update(){
         nodeIndex += orbit.skipIndex * WARP_SPEEDS[warpIndex];
-        // Check for escape planet SOI
+
+        // check for escape planet SOI
         if (orbit.celestialBody == OrbitCalculator.getPlanet() && orbit.isOnEscapePath && nodeIndex >= orbit.numberOfNodes){
             System.out.println("The spacecraft is now leaving the planet's SOI"); // Spacecrafts starts to orbit the sun
-            orbit.isOnEscapePath = false;
             Star sun = OrbitCalculator.getSun();
             Vector positionAtEscape = new Vector((double) (this.x_int - sun.x_int) / OrbitCalculator.scaleFactor,
                     (double) (sun.y_int - this.y_int) / OrbitCalculator.scaleFactor);
@@ -25,6 +25,9 @@ public class Spacecraft extends Orbiter {
 
             orbit.celestialBody = sun;
             recalculateOrbit(positionAtEscape, velocityAtEscape);
+            setPosition(orbit.positionsWrtCb.get(nodeIndex));
+            updatePixelPosition();
+
             return;
         }
 
@@ -34,7 +37,7 @@ public class Spacecraft extends Orbiter {
             Vector positionAtEncounter = new Vector((double) (this.x_int - planet.x_int) / OrbitCalculator.scaleFactor,
                     (double) (planet.y_int - this.y_int) / OrbitCalculator.scaleFactor);
 
-            if (positionAtEncounter.getAbs() < planet.SOI) {
+            if (positionAtEncounter.getAbs() < 0.9*planet.SOI) {
                 System.out.println("Spacecraft is now encountering the planet");
                 Vector velocityAtEncounter = velocity.subtract(planet.velocity);
 
@@ -43,6 +46,7 @@ public class Spacecraft extends Orbiter {
                 return;
             }
         }
+
 
         if (!orbit.isOnEscapePath && nodeIndex >= orbit.numberOfNodes) { // reset nodeIndex after every rotation completed
             nodeIndex = nodeIndex % orbit.numberOfNodes;
@@ -62,7 +66,9 @@ public class Spacecraft extends Orbiter {
         }
         updateVelocity(orbit.dT);
 
-        if (engineAcceleration && Orbiter.warpIndex == 0) { // engine burn
+
+        // check engine burn
+        if (engineAcceleration && Orbiter.warpIndex == 0) {
 
             accelerationDirection = velocity.getAngle() + engineModeDirection;
             velocity.addFromRadialCoordinates(0.004, accelerationDirection);
