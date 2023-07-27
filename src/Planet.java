@@ -1,9 +1,11 @@
+import java.awt.*;
+
 public class Planet extends CelestialBody {
     public StaticOrbit staticOrbit;
 
-    public Planet(double radius, double SOI, double mu){
-        super(radius, SOI, mu);
-        staticOrbit = new StaticOrbit();
+    public Planet(double radius, double SOI, double mu, Color color, double a, double e){
+        super(radius, SOI, mu, color);
+        staticOrbit = new StaticOrbit(a, e);
     }
 
     public void update(double dt){

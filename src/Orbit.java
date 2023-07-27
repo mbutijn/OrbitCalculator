@@ -25,60 +25,60 @@ public class Orbit {
         Vector positionChange = new Vector(dT * start_velocity.getX(), dT * start_velocity.getY());
         Vector secondPosition = currentPosition.add(positionChange);
         double r_2 = secondPosition.getAbs();
-        double distance = positionChange.getAbs();
+        double distanceFar = positionChange.getAbs();
 
-        boolean CCW = secondPosition.getAngle() > currentPosition.getAngle();
+        boolean isCCW = secondPosition.getAngle() > currentPosition.getAngle();
         if (currentPosition.getX() < 0 && currentPosition.getAngle() * secondPosition.getAngle() < 0) {
-            CCW = !CCW; // correct for bug at values of angle around pi and -pi
+            isCCW = !isCCW; // correct for bug at values of angle around pi and -pi
         }
-        // System.out.println("orbit is counter clockwise: " + CCW);
+        // System.out.println("orbit is counter clockwise: " + isCCW);
 
-        double s = (r_start + distance + r_2) / 2; // semi-perimeter triangle
-        double tw_area = 2 * Math.sqrt(s * (s - r_start) * (s - distance) * (s - r_2));
+        double semiPeri = (r_start + distanceFar + r_2) / 2; // semi-perimeter triangle
+        double tw_area = 2 * Math.sqrt(semiPeri * (semiPeri - r_start) * (semiPeri - distanceFar) * (semiPeri - r_2));
 
         // vis viva equation
-        double a = r_start / (2 - (r_start * v_start_abs2 / celestialBody.mu)); // semi-major axis (V_esc = 1/(4th_root(2)) ~ 0.8409 m/s)
-         System.out.println("a: " + a);
+        double semiMajorAxis = r_start / (2 - (r_start * v_start_abs2 / celestialBody.mu));
+         System.out.println("semiMajorAxis: " + semiMajorAxis);
 
         double dAdt = tw_area / dT; // twice area swept over time
         // System.out.println("dAdt: " + dAdt);
 
-        double e2, e, l, Ra = 0;
-        if (a > 0) { // ellipse
+        double eccentricitySquared, eccentricity, semiLatusRectum, Ra = 0;
+        if (semiMajorAxis > 0) { // ellipse
             double v_start_t = tw_area / (r_start * dT); // tangential component of velocity vector
             double v_start_t2 = v_start_t * v_start_t;
 
-            e2 = (Math.pow((r_start * v_start_abs2 / celestialBody.mu) - 1, 2) * v_start_t2 + (v_start_abs2 - v_start_t2)) / v_start_abs2;  // eccentricity squared
-            e = Math.sqrt(e2); // eccentricity
-            // System.out.println("e: " + e);
+            eccentricitySquared = (Math.pow((r_start * v_start_abs2 / celestialBody.mu) - 1, 2) * v_start_t2 + (v_start_abs2 - v_start_t2)) / v_start_abs2;  // eccentricity squared
+            eccentricity = Math.sqrt(eccentricitySquared); // eccentricity
+            // System.out.println("eccentricity: " + eccentricity);
 
-            l = a * (1 - e2); // semi-latus rectum
+            semiLatusRectum = semiMajorAxis * (1 - eccentricitySquared);
             // System.out.println("l: " + l);
 
-            Ra = a * (1 + e); // apoapsis distance
+            Ra = semiMajorAxis * (1 + eccentricity); // apoapsis distance
             // System.out.println("Ra: " + Ra);
 
         } else { // hyperbola
-            l = dAdt * dAdt / celestialBody.mu; // semi-latus rectum
+            semiLatusRectum = dAdt * dAdt / celestialBody.mu; // semi-latus rectum
             // System.out.println("l: " + l);
 
-            e2 = -l/a + 1;
-            // System.out.println("e2: " + e2);
+            eccentricitySquared = -semiLatusRectum/semiMajorAxis + 1;
+            // System.out.println("eccentricitySquared: " + eccentricitySquared);
 
-            e = Math.sqrt(e2);
-            // System.out.println("e: " + e);
+            eccentricity = Math.sqrt(eccentricitySquared);
+            // System.out.println("eccentricity: " + eccentricity);
 
         }
-        double Rp = a * (1 - e); // periapsis distance
+        double Rp = semiMajorAxis * (1 - eccentricity); // periapsis distance
         // System.out.println("Rp: " + Rp);
 
         boolean descending = secondPosition.getAbs() < r_start;
         // System.out.println("orbiter descending: " + descending);
 
-        double argument = (-r_start + a - e2 * a) / (r_start * e);
+        double argument = (-r_start + semiMajorAxis - eccentricitySquared * semiMajorAxis) / (r_start * eccentricity);
         double nu_start = argument < -1 ? Math.PI : argument > 1 ? 0 : Math.acos(argument);
 
-        if (descending == CCW) {
+        if (descending == isCCW) {
             nu_start = 2 * Math.PI - nu_start; // true anomaly
         }
         nu_start = nu_start > Math.PI ? nu_start - 2 * Math.PI : nu_start < -Math.PI ? nu_start + 2 * Math.PI : nu_start;
@@ -103,17 +103,17 @@ public class Orbit {
         boolean switched = false;
         positionsWrtCb.clear();
 
-        if (a > 0) { // ellipse
+        if (semiMajorAxis > 0) { // ellipse
             apoapsis.setVectorFromRadiusAndAngle(Ra, periapsis_angle + Math.PI);
             double nu_end;
-            if (CCW) {
+            if (isCCW) {
                 nu_end = nu_start + 2 * Math.PI;
                 while (nu < nu_end + dT * omega && r < celestialBody.SOI) {
                     if (r < celestialBody.radius && !switched){
                         nu = -nu;
                         switched = true;
                     } else {
-                        r = l / (1 + e * Math.cos(nu));
+                        r = semiLatusRectum / (1 + eccentricity * Math.cos(nu));
                         omega = dAdt / (r * r);
                         nu += omega * dT;
                         positionsWrtCb.add(new Vector(r, periapsis_angle + nu, true));
@@ -126,7 +126,7 @@ public class Orbit {
                         nu = -nu;
                         switched = true;
                     } else {
-                        r = l / (1 + e * Math.cos(nu));
+                        r = semiLatusRectum / (1 + eccentricity * Math.cos(nu));
                         omega = dAdt / (r * r);
                         nu -= omega * dT;
                         positionsWrtCb.add(new Vector(r, periapsis_angle + nu, true));
@@ -139,9 +139,9 @@ public class Orbit {
                     nu = -nu;
                     switched = true;
                 } else {
-                    r = l / (1 + e * Math.cos(nu));
+                    r = semiLatusRectum / (1 + eccentricity * Math.cos(nu));
                     omega = dAdt / (r * r);
-                    if (CCW) {
+                    if (isCCW) {
                         nu += omega * dT;
                     } else {
                         nu -= omega * dT;
@@ -153,13 +153,15 @@ public class Orbit {
         }
 
         isOnEscapePath = r > celestialBody.SOI;
+        /*
         if (isOnEscapePath){
-            if (celestialBody == OrbitCalculator.getPlanet()) {
+            if (celestialBody == OrbitCalculator.getHomePlanet()) {
                 System.out.println("Orbit is on escape path from planet");
             } else {
                 System.out.println("Orbit is on escape path from sun");
             }
         }
+        */
 
         numberOfNodes = positionsWrtCb.size();
         System.out.println("numberOfNodes: " + numberOfNodes);
@@ -188,10 +190,9 @@ public class Orbit {
     }
 
     public void drawSOI(Graphics2D g2d){
-        Planet planet = OrbitCalculator.getPlanet();
-        if (isOnEscapePath && celestialBody == planet){
-            int radius = (int) (planet.SOI * OrbitCalculator.scaleFactor);
-            g2d.drawOval(planet.x_int - radius, planet.y_int - radius, 2 * radius, 2 * radius);
+        if (isOnEscapePath) {
+            int radius = (int) (celestialBody.SOI * OrbitCalculator.scaleFactor);
+            g2d.drawOval(celestialBody.x_int - radius, celestialBody.y_int - radius, 2 * radius, 2 * radius);
         }
     }
 
@@ -200,13 +201,8 @@ public class Orbit {
         skipIndex = (int) (1000 * OrbitCalculator.timeStep);
         isOnEscapePath = false;
 
-        celestialBody = OrbitCalculator.getPlanet();
+        celestialBody = OrbitCalculator.getPlanets().get(0);
 
-        try {
-            recalculate(new Vector(0.25, 0.25), new Vector(0.27, -0.27));
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
     }
 
     public void updatePixelPosition() {

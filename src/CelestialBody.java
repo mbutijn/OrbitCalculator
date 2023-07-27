@@ -5,11 +5,17 @@ public class CelestialBody extends Orbiter{
     protected int radius_int;
     protected double SOI;
     protected final double mu; // standard gravitational parameter
+    protected Color color;
 
-    public CelestialBody(double radius, double SOI, double mu){
+    public CelestialBody(double radius, double SOI, double mu, Color color){
         this.radius = radius;
         this.SOI = SOI;
         this.mu = mu;
+        this.color = color;
+        updateRadius();
+    }
+
+    public void updateRadius(){
         radius_int = (int) (OrbitCalculator.scaleFactor * radius);
     }
 
@@ -19,7 +25,8 @@ public class CelestialBody extends Orbiter{
     }
 
     public void draw(Graphics2D g2d){
-        g2d.drawOval(x_int - radius_int, y_int - radius_int, 2 * radius_int, 2 * radius_int);
+        g2d.setColor(color);
+        g2d.fillOval(x_int - radius_int, y_int - radius_int, 2 * radius_int, 2 * radius_int);
     }
 
 }

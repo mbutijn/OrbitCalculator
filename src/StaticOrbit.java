@@ -3,9 +3,8 @@ public class StaticOrbit {
     double nu;
     public Vector position;
 
-    public StaticOrbit(){
-        double a = 3.0;
-        e = 0.3;
+    public StaticOrbit(double a, double e){
+        this.e = e;
         double e2 = e * e;
         double b = a * Math.sqrt(1 - e2);
         double period = 2 * Math.PI * Math.sqrt(a*a*a / OrbitCalculator.getSun().mu);
