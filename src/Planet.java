@@ -3,9 +3,9 @@ import java.awt.*;
 public class Planet extends CelestialBody {
     public StaticOrbit staticOrbit;
 
-    public Planet(double radius, double SOI, double mu, Color color, double a, double e){
+    public Planet(double radius, double SOI, double mu, Color color, double semiMajorAxis, double eccentricity){
         super(radius, SOI, mu, color);
-        staticOrbit = new StaticOrbit(a, e);
+        staticOrbit = new StaticOrbit(semiMajorAxis, eccentricity);
     }
 
     public void update(double dt){
@@ -21,7 +21,7 @@ public class Planet extends CelestialBody {
     }
 
     public void reset(){
-        staticOrbit.nu = 0;
+        staticOrbit.trueAnomaly = 0;
     }
 
 }

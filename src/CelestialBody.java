@@ -24,9 +24,9 @@ public class CelestialBody extends Orbiter{
         y_int = OrbitCalculator.getSun().y_int - (int) Math.round(OrbitCalculator.scaleFactor * position.getY());
     }
 
-    public void draw(Graphics2D g2d){
+    public void draw(Graphics2D g2d, int x_drag, int y_drag){
         g2d.setColor(color);
-        g2d.fillOval(x_int - radius_int, y_int - radius_int, 2 * radius_int, 2 * radius_int);
+        g2d.fillOval(x_int - radius_int + x_drag, y_int - radius_int + y_drag, 2 * radius_int, 2 * radius_int);
     }
 
 }

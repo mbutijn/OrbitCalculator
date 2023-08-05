@@ -8,13 +8,16 @@ public class OrbitCalculator extends JFrame implements KeyListener {
     private static int yBound;
     public static int scaleFactor = 100;
     private final Space space = new Space();
-    public final static Star sun = new Star(0, 0, 0.18, 10, 1.0, Color.YELLOW);
-    public final static Planet homePlanet = new Planet(0.08,0.75, 0.05, Color.CYAN, 2.4, 0.2);
-    public final static Planet mars = new Planet(0.05,0.45, 0.03, Color.RED, 3.8, 0.15);
+    public final static Star sun = new Star(0, 0, 0.15, 10, 0.1, Color.YELLOW);
+    public final static Planet homePlanet = new Planet(0.06,0.75, 0.005, Color.CYAN, 2.8, 0.2);
+    public final static Planet mars = new Planet(0.03,0.45, 0.003, Color.RED, 4.9, 0.15);
     private final Spacecraft spacecraft = new Spacecraft(homePlanet);
     private Timer timer;
     public final static double timeStep = 0.05;
     private static final ArrayList<Planet> planets = new ArrayList<>();
+    private Point mousePoint;
+    public int xdrag = 0, ydrag = 0, cameraIndex = 0;
+    public boolean dragged = false;
 
     public OrbitCalculator(String title) {
         this.setTitle(title);
@@ -26,6 +29,42 @@ public class OrbitCalculator extends JFrame implements KeyListener {
                 yBound = (int) getSize().getHeight();
                 System.out.println("resized to: " + xBound + " by " + yBound);
                 sun.updateMiddle(xBound / 2, yBound / 2);
+            }
+        });
+
+        addMouseWheelListener(e -> {
+            if (e.getWheelRotation() == 1){
+                scaleFactor = Math.max(50, scaleFactor - 5);
+            } else {
+                scaleFactor = Math.min(250, scaleFactor + 5);
+            }
+            System.out.println("zoom level: " + scaleFactor);
+
+            sun.updateRadius();
+            for (Planet planet : getPlanets()) {
+                planet.updateRadius();
+            }
+        });
+
+        this.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        this.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mousePressed(MouseEvent e) {
+                mousePoint = e.getPoint();
+                repaint();
+            }
+        });
+        addMouseMotionListener(new MouseMotionListener() {
+            @Override
+            public void mouseDragged(MouseEvent e) {
+                dragged = true;
+                xdrag += e.getX() - mousePoint.x;
+                ydrag += e.getY() - mousePoint.y;
+                mousePoint = e.getPoint();
+                repaint();
+            }
+            @Override
+            public void mouseMoved(MouseEvent e) {
             }
         });
     }
@@ -78,7 +117,30 @@ public class OrbitCalculator extends JFrame implements KeyListener {
         spacecraft.updatePixelPosition();
 
         space.repaint();
+
+        if (!dragged){
+            setCameraPosition();
+        }
     };
+
+    public void setCameraPosition(){
+        switch (cameraIndex) {
+            case 0 -> {
+                //System.out.println("camera is on sun");
+                xdrag = 0;
+                ydrag = 0;
+            }
+            case 1, 2 -> {
+                //System.out.println("camera is on planet");
+                xdrag = xBound / 2 - planets.get(cameraIndex - 1).x_int;
+                ydrag = yBound / 2 - planets.get(cameraIndex - 1).y_int;
+            }
+            case 3 -> {
+                xdrag = xBound / 2 - spacecraft.x_int;
+                ydrag = yBound / 2 - spacecraft.y_int;
+            }
+        }
+    }
 
     @Override
     public void keyTyped(KeyEvent e) {
@@ -108,7 +170,7 @@ public class OrbitCalculator extends JFrame implements KeyListener {
         if (code == KeyEvent.VK_PERIOD){
             Orbiter.warpUp();
         }
-        if (code == KeyEvent.VK_ESCAPE){ // pause
+        if (code == KeyEvent.VK_ESCAPE){ // pause/resume
             if (timer.isRunning()) {
                 System.out.println("paused");
                 timer.stop();
@@ -117,35 +179,19 @@ public class OrbitCalculator extends JFrame implements KeyListener {
                 timer.start();
             }
         }
-        if (code == KeyEvent.VK_SPACE){ // orbits reset button
+        if (code == KeyEvent.VK_SPACE){ // orbit reset button
             System.out.println("Reset simulation");
             spacecraft.reset();
             resetPlanets();
         }
-        if (code == KeyEvent.VK_HOME){
-            scaleFactor = 50; // zoom min
-            updateRadii();
-        }
-        if (code == KeyEvent.VK_PAGE_UP) { // zoom out
-            scaleFactor = Math.max(50, scaleFactor - 5);
-            updateRadii();
-        }
-        if (code == KeyEvent.VK_PAGE_DOWN) { // zoom in
-            scaleFactor = Math.min(200, scaleFactor + 5);
-            updateRadii();
-        }
-        if (code == KeyEvent.VK_END){
-            scaleFactor = 200; // zoom max
-            updateRadii();
-        }
-    }
+        if (code == KeyEvent.VK_V){ // make camera focus on next objet
+            dragged = false;
+            cameraIndex++;
+            cameraIndex = cameraIndex > 3 ? 0 : cameraIndex;
 
-    private void updateRadii(){
-        sun.updateRadius();
-        for (Planet planet : getPlanets()) {
-            planet.updateRadius();
+            setCameraPosition();
+            repaint();
         }
-        System.out.println("zoom level: " + scaleFactor);
     }
 
     public static void resetPlanets() {
@@ -171,26 +217,27 @@ public class OrbitCalculator extends JFrame implements KeyListener {
 
             // draw orbit
             g2d.setColor(Color.WHITE);
-            spacecraft.orbit.draw(g2d);
+            spacecraft.orbit.draw(g2d, xdrag, ydrag);
 
             // draw spacecraft
-            spacecraft.draw(g2d);
+            spacecraft.draw(g2d, xdrag, ydrag);
 
             // draw celestialBodies
-            homePlanet.draw(g2d);
-            mars.draw(g2d);
-            sun.draw(g2d);
+            homePlanet.draw(g2d, xdrag, ydrag);
+            mars.draw(g2d, xdrag, ydrag);
+            sun.draw(g2d, xdrag, ydrag);
 
             // draw extremes
             g2d.setColor(Color.WHITE);
-            spacecraft.orbit.drawPeriapsis(g2d);
-            spacecraft.orbit.drawApoapsis(g2d);
+            spacecraft.orbit.drawPeriapsis(g2d, xdrag, ydrag);
+            spacecraft.orbit.drawApoapsis(g2d, xdrag, ydrag);
 
             // draw SOI
-            spacecraft.orbit.drawSOI(g2d);
+            g2d.setColor(Color.GRAY);
+            spacecraft.orbit.drawSOI(g2d, xdrag, ydrag);
 
             // draw engine thrust direction
-            spacecraft.drawThrustVector(g2d);
+            spacecraft.drawThrustVector(g2d, xdrag, ydrag);
 
         }
     }

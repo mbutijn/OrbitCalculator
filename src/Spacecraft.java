@@ -6,6 +6,7 @@ public class Spacecraft extends Orbiter {
     public boolean engineAcceleration = false;
     private double engineModeDirection = 0;
     private double accelerationDirection;
+    private double fuelMass = 500;
 
     public Spacecraft(CelestialBody celestialBody){
         orbit = new Orbit(celestialBody);
@@ -70,20 +71,32 @@ public class Spacecraft extends Orbiter {
 
 
         // check engine burn
-        if (engineAcceleration && Orbiter.warpIndex == 0) {
+        if (engineAcceleration && Orbiter.warpIndex == 0 && fuelMass > 0) {
 
             accelerationDirection = velocity.getAngle() + engineModeDirection;
-            velocity.addFromRadialCoordinates(0.004, accelerationDirection);
+
+            // Rocket equation over one timestep:
+            double dryMass = 500;
+            double equivalentVelocity = 2.7;
+            double massFlowRate = 1;
+            double currentMass = dryMass + fuelMass;
+            double deltaV = equivalentVelocity * Math.log(currentMass / (currentMass - massFlowRate));
+            fuelMass -= massFlowRate;
+            System.out.println("fuel: " + fuelMass);
+
+            velocity.addFromRadialCoordinates(deltaV, accelerationDirection);
             recalculateOrbit(position, velocity);
+
+            System.out.println("deltaV: " + equivalentVelocity * Math.log((dryMass + fuelMass) / dryMass));
         }
     }
 
     public void initStartVectors(){
         double startAngle = 0.25 * Math.PI;
-        double height = 0.35;
+        double height = 0.2;
 
         Vector position = new Vector(height, startAngle, true);
-        Vector velocity = new Vector(0.001 * Math.round(1000*Math.sqrt(orbit.celestialBody.mu / height)), startAngle - 0.5 * Math.PI, true);
+        Vector velocity = new Vector(0.0001 * Math.round(10000 * Math.sqrt(orbit.celestialBody.mu / height)), startAngle - 0.5 * Math.PI, true);
 
         recalculateOrbit(position, velocity); // ellipse
         orbit.updatePixelPosition();
@@ -114,21 +127,21 @@ public class Spacecraft extends Orbiter {
         y_int = orbit.celestialBody.y_int - (int) Math.round(OrbitCalculator.scaleFactor * position.getY());
     }
 
-    public void draw(Graphics2D g2d) {
-        g2d.fillRect(x_int - 2, y_int - 2, 4,4);
+    public void draw(Graphics2D g2d, int x_drag, int y_drag) {
+        g2d.fillRect(x_int - 2 + x_drag, y_int - 2 + y_drag, 4,4);
     }
 
-    public void drawThrustVector(Graphics2D g2d){
+    public void drawThrustVector(Graphics2D g2d, int x_drag, int y_drag){
         if (engineAcceleration) {
-            int pointX = x_int + (int) (Math.round(15 * Math.cos(accelerationDirection)));
-            int pointY = y_int - (int) (Math.round(15 * Math.sin(accelerationDirection)));
-            int pointX2 = x_int + (int) (Math.round(10 * Math.cos(accelerationDirection + 0.5)));
-            int pointY2 = y_int - (int) (Math.round(10 * Math.sin(accelerationDirection + 0.5)));
-            int pointX3 = x_int + (int) (Math.round(10 * Math.cos(accelerationDirection - 0.5)));
-            int pointY3 = y_int - (int) (Math.round(10 * Math.sin(accelerationDirection - 0.5)));
+            int pointX = x_int + (int) (Math.round(15 * Math.cos(accelerationDirection))) + x_drag;
+            int pointY = y_int - (int) (Math.round(15 * Math.sin(accelerationDirection))) + y_drag;
+            int pointX2 = x_int + (int) (Math.round(10 * Math.cos(accelerationDirection + 0.5))) + x_drag;
+            int pointY2 = y_int - (int) (Math.round(10 * Math.sin(accelerationDirection + 0.5))) + y_drag;
+            int pointX3 = x_int + (int) (Math.round(10 * Math.cos(accelerationDirection - 0.5))) + x_drag;
+            int pointY3 = y_int - (int) (Math.round(10 * Math.sin(accelerationDirection - 0.5))) + y_drag;
 
             // draw arrow
-            g2d.drawLine(x_int, y_int, pointX, pointY);
+            g2d.drawLine(x_int + x_drag, y_int + y_drag, pointX, pointY);
             g2d.drawLine(pointX, pointY, pointX2, pointY2);
             g2d.drawLine(pointX, pointY, pointX3, pointY3);
         }
@@ -142,27 +155,36 @@ public class Spacecraft extends Orbiter {
         System.out.println("Spacecraft reset");
         orbit.reset();
         initStartVectors();
+        fuelMass = 500;
         nodeIndex = 0;
         warpIndex = 0;
     }
 
     public void firePrograde() {
-        engineAcceleration = true;
-        engineModeDirection = 0;
+        if (fuelMass > 0) {
+            engineAcceleration = true;
+            engineModeDirection = 0;
+        }
     }
 
     public void fireRetrograde() {
-        engineAcceleration = true;
-        engineModeDirection = Math.PI;
+        if (fuelMass > 0) {
+            engineAcceleration = true;
+            engineModeDirection = Math.PI;
+        }
     }
 
     public void fireRight() {
-        engineAcceleration = true;
-        engineModeDirection = 1.5 * Math.PI;
+        if (fuelMass > 0) {
+            engineAcceleration = true;
+            engineModeDirection = 1.5 * Math.PI;
+        }
     }
 
     public void fireLeft() {
-        engineAcceleration = true;
-        engineModeDirection = 0.5 * Math.PI;
+        if (fuelMass > 0) {
+            engineAcceleration = true;
+            engineModeDirection = 0.5 * Math.PI;
+        }
     }
 }
