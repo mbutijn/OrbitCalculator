@@ -3,8 +3,8 @@ import java.awt.*;
 public class Planet extends CelestialBody {
     public StaticOrbit staticOrbit;
 
-    public Planet(double radius, double SOI, double mu, Color color, double semiMajorAxis, double eccentricity){
-        super(radius, SOI, mu, color);
+    public Planet(double radius, double SOI, double mu, Color color, double semiMajorAxis, double eccentricity, String name){
+        super(radius, SOI, mu, color, name);
         staticOrbit = new StaticOrbit(semiMajorAxis, eccentricity);
     }
 

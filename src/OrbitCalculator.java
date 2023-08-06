@@ -7,17 +7,18 @@ public class OrbitCalculator extends JFrame implements KeyListener {
     private static int xBound;
     private static int yBound;
     public static int scaleFactor = 100;
-    private final Space space = new Space();
     public final static Star sun = new Star(0, 0, 0.15, 10, 0.1, Color.YELLOW);
-    public final static Planet homePlanet = new Planet(0.06,0.75, 0.005, Color.CYAN, 2.8, 0.2);
-    public final static Planet mars = new Planet(0.03,0.45, 0.003, Color.RED, 4.9, 0.15);
-    private final Spacecraft spacecraft = new Spacecraft(homePlanet);
+    public final static Planet earth = new Planet(0.06,0.75, 0.005, Color.CYAN, 2.8, 0.2, "earth");
+    public final static Planet mars = new Planet(0.03,0.45, 0.003, Color.RED, 4.9, 0.15, "mars");
+    private final Spacecraft spacecraft = new Spacecraft(earth);
+    private final Space space = new Space();
     private Timer timer;
     public final static double timeStep = 0.05;
     private static final ArrayList<Planet> planets = new ArrayList<>();
     private Point mousePoint;
-    public int xdrag = 0, ydrag = 0, cameraIndex = 0;
+    public int cameraIndex = 0;
     public boolean dragged = false;
+    private Orbiter orbiter;
 
     public OrbitCalculator(String title) {
         this.setTitle(title);
@@ -58,8 +59,8 @@ public class OrbitCalculator extends JFrame implements KeyListener {
             @Override
             public void mouseDragged(MouseEvent e) {
                 dragged = true;
-                xdrag += e.getX() - mousePoint.x;
-                ydrag += e.getY() - mousePoint.y;
+                Orbiter.xdrag += e.getX() - mousePoint.x;
+                Orbiter.ydrag += e.getY() - mousePoint.y;
                 mousePoint = e.getPoint();
                 repaint();
             }
@@ -83,10 +84,11 @@ public class OrbitCalculator extends JFrame implements KeyListener {
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         setKeyBoardListeners();
 
-        planets.add(homePlanet);
+        planets.add(earth);
         planets.add(mars);
+        setCameraPosition();
 
-        spacecraft.initStartVectors(); // starts in elliptical orbit around homePlanet
+        spacecraft.initStartVectors(); // starts in elliptical orbit around earth
 
         // start the simulation
         timer = new Timer((int) (1000 * timeStep), update);
@@ -125,21 +127,15 @@ public class OrbitCalculator extends JFrame implements KeyListener {
 
     public void setCameraPosition(){
         switch (cameraIndex) {
-            case 0 -> {
-                //System.out.println("camera is on sun");
-                xdrag = 0;
-                ydrag = 0;
-            }
-            case 1, 2 -> {
-                //System.out.println("camera is on planet");
-                xdrag = xBound / 2 - planets.get(cameraIndex - 1).x_int;
-                ydrag = yBound / 2 - planets.get(cameraIndex - 1).y_int;
-            }
-            case 3 -> {
-                xdrag = xBound / 2 - spacecraft.x_int;
-                ydrag = yBound / 2 - spacecraft.y_int;
-            }
+            case 0 ->
+                orbiter = sun;
+            case 1, 2 ->
+                orbiter = planets.get(cameraIndex - 1);
+            case 3 ->
+                orbiter = spacecraft;
         }
+        Orbiter.xdrag = xBound / 2 - orbiter.x_int;
+        Orbiter.ydrag = yBound / 2 - orbiter.y_int;
     }
 
     @Override
@@ -217,28 +213,34 @@ public class OrbitCalculator extends JFrame implements KeyListener {
 
             // draw orbit
             g2d.setColor(Color.WHITE);
-            spacecraft.orbit.draw(g2d, xdrag, ydrag);
+            spacecraft.orbit.draw(g2d);
 
             // draw spacecraft
-            spacecraft.draw(g2d, xdrag, ydrag);
+            spacecraft.draw(g2d);
 
             // draw celestialBodies
-            homePlanet.draw(g2d, xdrag, ydrag);
-            mars.draw(g2d, xdrag, ydrag);
-            sun.draw(g2d, xdrag, ydrag);
+            sun.draw(g2d);
+            earth.draw(g2d);
+            mars.draw(g2d);
 
             // draw extremes
             g2d.setColor(Color.WHITE);
-            spacecraft.orbit.drawPeriapsis(g2d, xdrag, ydrag);
-            spacecraft.orbit.drawApoapsis(g2d, xdrag, ydrag);
+            spacecraft.orbit.drawPeriapsis(g2d);
+            spacecraft.orbit.drawApoapsis(g2d);
 
             // draw SOI
             g2d.setColor(Color.GRAY);
-            spacecraft.orbit.drawSOI(g2d, xdrag, ydrag);
+            spacecraft.orbit.drawSOI(g2d);
 
             // draw engine thrust direction
-            spacecraft.drawThrustVector(g2d, xdrag, ydrag);
+            spacecraft.drawThrustVector(g2d);
 
+            // draw UI overlay
+            g2d.fillRect(0, yBound - 160, 190, 160);
+            g2d.setColor(Color.BLACK);
+            spacecraft.orbit.drawUI(g2d, yBound);
+            g2d.drawString("Camera position: " + (dragged ? "free" : orbiter.name), 10, yBound - 50);
+            spacecraft.drawUI(g2d, yBound);
         }
     }
 

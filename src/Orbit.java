@@ -10,7 +10,8 @@ public class Orbit {
     public final double dT = 0.001;
     public int numberOfNodes, skipIndex = (int) (1000 * OrbitCalculator.timeStep);
     CelestialBody celestialBody;
-    public boolean isOnEscapePath;
+    public boolean isOnEscapePath, isOnCrashPath;
+    private double semiMajorAxis, eccentricity;
 
     public Orbit(CelestialBody celestialBody){
         this.celestialBody = celestialBody;
@@ -37,20 +38,18 @@ public class Orbit {
         double tw_area = 2 * Math.sqrt(semiPeri * (semiPeri - distance_start) * (semiPeri - distance_far) * (semiPeri - distance_2));
 
         // vis viva equation
-        double semiMajorAxis = distance_start / (2 - (distance_start * v_start_abs2 / celestialBody.mu));
-         System.out.println("semiMajorAxis: " + semiMajorAxis);
+        semiMajorAxis = distance_start / (2 - (distance_start * v_start_abs2 / celestialBody.mu));
 
         double dAdt = tw_area / dT; // twice area swept over time
         // System.out.println("dAdt: " + dAdt);
 
-        double eccentricitySquared, eccentricity, semiLatusRectum, distance_apoapsis = 0;
+        double eccentricitySquared, semiLatusRectum, distance_apoapsis = 0;
         if (semiMajorAxis > 0) { // ellipse
             double v_start_t = tw_area / (distance_start * dT); // tangential component of velocity vector
             double v_start_t2 = v_start_t * v_start_t;
 
             eccentricitySquared = (Math.pow((distance_start * v_start_abs2 / celestialBody.mu) - 1, 2) * v_start_t2 + (v_start_abs2 - v_start_t2)) / v_start_abs2;  // eccentricity squared
             eccentricity = Math.sqrt(eccentricitySquared); // eccentricity
-            // System.out.println("eccentricity: " + eccentricity);
 
             semiLatusRectum = semiMajorAxis * (1 - eccentricitySquared);
             // System.out.println("semiLatusRectum: " + semiLatusRectum);
@@ -99,58 +98,43 @@ public class Orbit {
         double trueAnomaly = trueAnomalyStart;
         double angularVelocity = 0;
         double distance = distance_start;
-        boolean switched = false;
         positionsWrtCb.clear();
 
         if (semiMajorAxis > 0) { // ellipse
             apoapsis.setVectorFromRadiusAndAngle(distance_apoapsis, periapsis_angle + Math.PI);
             double trueAnomalyEnd;
             if (isCCW) {
-                trueAnomalyEnd = trueAnomalyStart + 2 * Math.PI;
-                while (trueAnomaly < trueAnomalyEnd + dT * angularVelocity && distance < celestialBody.SOI) {
-                    if (distance < celestialBody.radius && !switched){
-                        trueAnomaly = -trueAnomaly;
-                        switched = true;
-                    } else {
-                        distance = semiLatusRectum / (1 + eccentricity * Math.cos(trueAnomaly));
-                        angularVelocity = dAdt / (distance * distance);
-                        trueAnomaly += angularVelocity * dT;
-                        positionsWrtCb.add(new Vector(distance, periapsis_angle + trueAnomaly, true));
-                    }
-                }
-            } else {
-                trueAnomalyEnd = trueAnomalyStart - 2 * Math.PI;
-                while (trueAnomaly > trueAnomalyEnd - dT * angularVelocity && distance < celestialBody.SOI) {
-                    if (distance < celestialBody.radius && !switched){
-                        trueAnomaly = -trueAnomaly;
-                        switched = true;
-                    } else {
-                        distance = semiLatusRectum / (1 + eccentricity * Math.cos(trueAnomaly));
-                        angularVelocity = dAdt / (distance * distance);
-                        trueAnomaly -= angularVelocity * dT;
-                        positionsWrtCb.add(new Vector(distance, periapsis_angle + trueAnomaly, true));
-                    }
-                }
-            }
-        } else { // hyperbolic trajectory
-            while (distance < celestialBody.SOI) {
-                if (distance < celestialBody.radius && !switched){
-                    trueAnomaly = -trueAnomaly;
-                    switched = true;
-                } else {
+                trueAnomalyEnd = trueAnomalyStart + 2 * Math.PI + dT * angularVelocity;
+                while (trueAnomaly < trueAnomalyEnd && distance < celestialBody.SOI && distance > celestialBody.radius) {
                     distance = semiLatusRectum / (1 + eccentricity * Math.cos(trueAnomaly));
                     angularVelocity = dAdt / (distance * distance);
-                    if (isCCW) {
-                        trueAnomaly += angularVelocity * dT;
-                    } else {
-                        trueAnomaly -= angularVelocity * dT;
-                    }
-
+                    trueAnomaly += angularVelocity * dT;
+                    positionsWrtCb.add(new Vector(distance, periapsis_angle + trueAnomaly, true));
+                }
+            } else {
+                trueAnomalyEnd = trueAnomalyStart - 2 * Math.PI - dT * angularVelocity;
+                while (trueAnomaly > trueAnomalyEnd && distance < celestialBody.SOI && distance > celestialBody.radius) {
+                    distance = semiLatusRectum / (1 + eccentricity * Math.cos(trueAnomaly));
+                    angularVelocity = dAdt / (distance * distance);
+                    trueAnomaly -= angularVelocity * dT;
                     positionsWrtCb.add(new Vector(distance, periapsis_angle + trueAnomaly, true));
                 }
             }
+        } else { // hyperbolic trajectory
+            while (distance < celestialBody.SOI && distance > celestialBody.radius) {
+                distance = semiLatusRectum / (1 + eccentricity * Math.cos(trueAnomaly));
+                angularVelocity = dAdt / (distance * distance);
+                if (isCCW) {
+                    trueAnomaly += angularVelocity * dT;
+                } else {
+                    trueAnomaly -= angularVelocity * dT;
+                }
+                positionsWrtCb.add(new Vector(distance, periapsis_angle + trueAnomaly, true));
+
+            }
         }
 
+        isOnCrashPath = distance < celestialBody.radius;
         isOnEscapePath = distance > celestialBody.SOI;
         /*
         if (isOnEscapePath){
@@ -166,32 +150,32 @@ public class Orbit {
         System.out.println("numberOfNodes: " + numberOfNodes);
     }
 
-    public void draw(Graphics g2d, int x_drag, int y_drag) {
+    public void draw(Graphics g2d) {
         for (int i = 0; i < numberOfNodes - 20; i += 20) {
-            g2d.drawLine(x_ints.get(i) + x_drag, y_ints.get(i) + y_drag, x_ints.get(i + 20) + x_drag, y_ints.get(i + 20) + y_drag);
+            g2d.drawLine(x_ints.get(i) + Orbiter.xdrag, y_ints.get(i) + Orbiter.ydrag, x_ints.get(i + 20) + Orbiter.xdrag, y_ints.get(i + 20) + Orbiter.ydrag);
         }
     }
 
-    public void drawPeriapsis(Graphics2D g2d, int x_drag, int y_drag) {
-        int x = celestialBody.x_int + (int) (OrbitCalculator.scaleFactor * periapsis.getX()) + x_drag;
-        int y = celestialBody.y_int - (int) (OrbitCalculator.scaleFactor * periapsis.getY()) + y_drag;
+    public void drawPeriapsis(Graphics2D g2d) {
+        int x = celestialBody.x_int + (int) (OrbitCalculator.scaleFactor * periapsis.getX()) + Orbiter.xdrag;
+        int y = celestialBody.y_int - (int) (OrbitCalculator.scaleFactor * periapsis.getY()) + Orbiter.ydrag;
         g2d.fillOval(x - 3, y - 3, 6 ,6);
         g2d.drawString(String.format("Pe: %.3f", periapsis.abs - celestialBody.radius), x, y - 5);
     }
 
-    public void drawApoapsis(Graphics2D g2d, int x_drag, int y_drag) {
+    public void drawApoapsis(Graphics2D g2d) {
         if (!isOnEscapePath) {
-            int x = celestialBody.x_int + (int) (OrbitCalculator.scaleFactor * apoapsis.getX()) + x_drag;
-            int y = celestialBody.y_int - (int) (OrbitCalculator.scaleFactor * apoapsis.getY()) + y_drag;
+            int x = celestialBody.x_int + (int) (OrbitCalculator.scaleFactor * apoapsis.getX()) + Orbiter.xdrag;
+            int y = celestialBody.y_int - (int) (OrbitCalculator.scaleFactor * apoapsis.getY()) + Orbiter.ydrag;
             g2d.fillOval(x - 3, y - 3, 6, 6);
             g2d.drawString(String.format("Ap: %.3f", apoapsis.abs - celestialBody.radius), x, y - 5);
         }
     }
 
-    public void drawSOI(Graphics2D g2d, int x_drag, int y_drag){
+    public void drawSOI(Graphics2D g2d){
         if (isOnEscapePath) {
             int radius = (int) (celestialBody.SOI * OrbitCalculator.scaleFactor);
-            g2d.drawOval(celestialBody.x_int - radius + x_drag, celestialBody.y_int - radius + y_drag, 2 * radius, 2 * radius);
+            g2d.drawOval(celestialBody.x_int - radius + Orbiter.xdrag, celestialBody.y_int - radius + Orbiter.ydrag, 2 * radius, 2 * radius);
         }
     }
 
@@ -211,5 +195,11 @@ public class Orbit {
             x_ints.add(celestialBody.x_int + (int) (OrbitCalculator.scaleFactor * positionsWrtCb.get(i).getX()));
             y_ints.add(celestialBody.y_int - (int) (OrbitCalculator.scaleFactor * positionsWrtCb.get(i).getY()));
         }
+    }
+
+    public void drawUI(Graphics2D g2d, int y) {
+        g2d.drawString("Celestial body: " + celestialBody.name + (isOnEscapePath ? " (leaving SOI)" : isOnCrashPath ? " (crashing)" : ""), 10, y - 140);
+        g2d.drawString(String.format("Eccentricity = %.2f", eccentricity) + (eccentricity < 1 ? " (ellipse)" : " (hyperbola)"), 10, y - 125);
+        g2d.drawString(String.format("Semi major axis = %.2f m", semiMajorAxis), 10, y - 110);
     }
 }

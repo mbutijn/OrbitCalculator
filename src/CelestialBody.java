@@ -7,7 +7,8 @@ public class CelestialBody extends Orbiter{
     protected final double mu; // standard gravitational parameter
     protected Color color;
 
-    public CelestialBody(double radius, double SOI, double mu, Color color){
+    public CelestialBody(double radius, double SOI, double mu, Color color, String name){
+        super(name);
         this.radius = radius;
         this.SOI = SOI;
         this.mu = mu;
@@ -24,9 +25,9 @@ public class CelestialBody extends Orbiter{
         y_int = OrbitCalculator.getSun().y_int - (int) Math.round(OrbitCalculator.scaleFactor * position.getY());
     }
 
-    public void draw(Graphics2D g2d, int x_drag, int y_drag){
+    public void draw(Graphics2D g2d){
         g2d.setColor(color);
-        g2d.fillOval(x_int - radius_int + x_drag, y_int - radius_int + y_drag, 2 * radius_int, 2 * radius_int);
+        g2d.fillOval(x_int - radius_int + xdrag, y_int - radius_int + ydrag, 2 * radius_int, 2 * radius_int);
     }
 
 }

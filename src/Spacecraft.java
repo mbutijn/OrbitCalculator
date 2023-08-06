@@ -7,9 +7,14 @@ public class Spacecraft extends Orbiter {
     private double engineModeDirection = 0;
     private double accelerationDirection;
     private double fuelMass = 500;
+    private double deltaV;
+    private final double dryMass = 500;
+    private final double equivalentVelocity = 2.7;
 
     public Spacecraft(CelestialBody celestialBody){
+        super("spacecraft");
         orbit = new Orbit(celestialBody);
+        deltaV = equivalentVelocity * Math.log((dryMass + fuelMass) / dryMass);
     }
 
     public void update(){
@@ -51,11 +56,11 @@ public class Spacecraft extends Orbiter {
             }
         }
 
-        if (!orbit.isOnEscapePath && nodeIndex >= orbit.numberOfNodes) { // reset nodeIndex after every rotation completed
+        if (!orbit.isOnEscapePath && !orbit.isOnCrashPath && nodeIndex >= orbit.numberOfNodes) { // reset nodeIndex after every rotation completed
             nodeIndex = nodeIndex % orbit.numberOfNodes;
         }
 
-        if (nodeIndex >= orbit.numberOfNodes){
+        if (nodeIndex >= orbit.numberOfNodes || (orbit.isOnCrashPath && orbit.positionsWrtCb.get(nodeIndex).getAbs() < orbit.celestialBody.radius)){
             reset(); // prevents out of bounds exception
             OrbitCalculator.resetPlanets();
             return;
@@ -69,25 +74,21 @@ public class Spacecraft extends Orbiter {
         }
         updateVelocity(orbit.dT);
 
-
         // check engine burn
         if (engineAcceleration && Orbiter.warpIndex == 0 && fuelMass > 0) {
 
             accelerationDirection = velocity.getAngle() + engineModeDirection;
 
             // Rocket equation over one timestep:
-            double dryMass = 500;
-            double equivalentVelocity = 2.7;
             double massFlowRate = 1;
             double currentMass = dryMass + fuelMass;
-            double deltaV = equivalentVelocity * Math.log(currentMass / (currentMass - massFlowRate));
+            double deltaVUpdate = equivalentVelocity * Math.log(currentMass / (currentMass - massFlowRate));
             fuelMass -= massFlowRate;
-            System.out.println("fuel: " + fuelMass);
 
-            velocity.addFromRadialCoordinates(deltaV, accelerationDirection);
+            velocity.addFromRadialCoordinates(deltaVUpdate, accelerationDirection);
             recalculateOrbit(position, velocity);
 
-            System.out.println("deltaV: " + equivalentVelocity * Math.log((dryMass + fuelMass) / dryMass));
+            deltaV = equivalentVelocity * Math.log((dryMass + fuelMass) / dryMass);
         }
     }
 
@@ -127,21 +128,21 @@ public class Spacecraft extends Orbiter {
         y_int = orbit.celestialBody.y_int - (int) Math.round(OrbitCalculator.scaleFactor * position.getY());
     }
 
-    public void draw(Graphics2D g2d, int x_drag, int y_drag) {
-        g2d.fillRect(x_int - 2 + x_drag, y_int - 2 + y_drag, 4,4);
+    public void draw(Graphics2D g2d) {
+        g2d.fillRect(x_int - 2 + xdrag, y_int - 2 + ydrag, 4,4);
     }
 
-    public void drawThrustVector(Graphics2D g2d, int x_drag, int y_drag){
+    public void drawThrustVector(Graphics2D g2d){
         if (engineAcceleration) {
-            int pointX = x_int + (int) (Math.round(15 * Math.cos(accelerationDirection))) + x_drag;
-            int pointY = y_int - (int) (Math.round(15 * Math.sin(accelerationDirection))) + y_drag;
-            int pointX2 = x_int + (int) (Math.round(10 * Math.cos(accelerationDirection + 0.5))) + x_drag;
-            int pointY2 = y_int - (int) (Math.round(10 * Math.sin(accelerationDirection + 0.5))) + y_drag;
-            int pointX3 = x_int + (int) (Math.round(10 * Math.cos(accelerationDirection - 0.5))) + x_drag;
-            int pointY3 = y_int - (int) (Math.round(10 * Math.sin(accelerationDirection - 0.5))) + y_drag;
+            int pointX = x_int + (int) (Math.round(15 * Math.cos(accelerationDirection))) + xdrag;
+            int pointY = y_int - (int) (Math.round(15 * Math.sin(accelerationDirection))) + ydrag;
+            int pointX2 = x_int + (int) (Math.round(10 * Math.cos(accelerationDirection + 0.5))) + xdrag;
+            int pointY2 = y_int - (int) (Math.round(10 * Math.sin(accelerationDirection + 0.5))) + ydrag;
+            int pointX3 = x_int + (int) (Math.round(10 * Math.cos(accelerationDirection - 0.5))) + xdrag;
+            int pointY3 = y_int - (int) (Math.round(10 * Math.sin(accelerationDirection - 0.5))) + ydrag;
 
             // draw arrow
-            g2d.drawLine(x_int + x_drag, y_int + y_drag, pointX, pointY);
+            g2d.drawLine(x_int + xdrag, y_int + ydrag, pointX, pointY);
             g2d.drawLine(pointX, pointY, pointX2, pointY2);
             g2d.drawLine(pointX, pointY, pointX3, pointY3);
         }
@@ -158,6 +159,7 @@ public class Spacecraft extends Orbiter {
         fuelMass = 500;
         nodeIndex = 0;
         warpIndex = 0;
+        deltaV = equivalentVelocity * Math.log((dryMass + fuelMass) / dryMass);
     }
 
     public void firePrograde() {
@@ -186,5 +188,12 @@ public class Spacecraft extends Orbiter {
             engineAcceleration = true;
             engineModeDirection = 0.5 * Math.PI;
         }
+    }
+
+    public void drawUI(Graphics2D g2d, int y){
+        g2d.drawString(String.format("DeltaV = %.3f m/s", deltaV), 10, y - 80);
+        g2d.drawString("Warp speed = " + WARP_SPEEDS[warpIndex], 10, y - 65);
+
+        g2d.drawString(String.format("Velocity = %.2f m/s", velocity.getAbs()), 10, y - 95);
     }
 }
