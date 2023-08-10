@@ -9,7 +9,7 @@ public class Orbit {
     private final Vector apoapsis = new Vector(0, 0);
     public final double dT = 0.001;
     public int numberOfNodes, skipIndex = (int) (1000 * OrbitCalculator.timeStep);
-    CelestialBody celestialBody;
+    public CelestialBody celestialBody;
     public boolean isOnEscapePath, isOnCrashPath;
     private double semiMajorAxis, eccentricity;
 
@@ -17,19 +17,19 @@ public class Orbit {
         this.celestialBody = celestialBody;
     }
 
-    public void recalculate(Vector currentPosition, Vector start_velocity) {
-        double distance_start = currentPosition.getAbs();
-        double angle_start = currentPosition.getAngle();
-        double v_start_abs = start_velocity.getAbs();
+    public void recalculate(Vector startPosition, Vector startVelocity) {
+        double distance_start = startPosition.getAbs();
+        double angle_start = startPosition.getAngle();
+        double v_start_abs = startVelocity.getAbs();
         double v_start_abs2 = v_start_abs * v_start_abs;
 
-        Vector positionChange = new Vector(dT * start_velocity.getX(), dT * start_velocity.getY());
-        Vector secondPosition = currentPosition.add(positionChange);
+        Vector positionChange = new Vector(dT * startVelocity.getX(), dT * startVelocity.getY());
+        Vector secondPosition = startPosition.add(positionChange);
         double distance_2 = secondPosition.getAbs();
         double distance_far = positionChange.getAbs();
 
-        boolean isCCW = secondPosition.getAngle() > currentPosition.getAngle();
-        if (currentPosition.getX() < 0 && currentPosition.getAngle() * secondPosition.getAngle() < 0) {
+        boolean isCCW = secondPosition.getAngle() > startPosition.getAngle();
+        if (startPosition.getX() < 0 && startPosition.getAngle() * secondPosition.getAngle() < 0) {
             isCCW = !isCCW; // correct for bug at values of angle around pi and -pi
         }
         // System.out.println("orbit is counter clockwise: " + isCCW);
@@ -61,7 +61,7 @@ public class Orbit {
             semiLatusRectum = dAdt * dAdt / celestialBody.mu; // semi-latus rectum
             // System.out.println("semiLatusRectum: " + semiLatusRectum);
 
-            eccentricitySquared = -semiLatusRectum/semiMajorAxis + 1;
+            eccentricitySquared = -semiLatusRectum / semiMajorAxis + 1;
             // System.out.println("eccentricitySquared: " + eccentricitySquared);
 
             eccentricity = Math.sqrt(eccentricitySquared);
@@ -136,18 +136,9 @@ public class Orbit {
 
         isOnCrashPath = distance < celestialBody.radius;
         isOnEscapePath = distance > celestialBody.SOI;
-        /*
-        if (isOnEscapePath){
-            if (celestialBody == OrbitCalculator.getHomePlanet()) {
-                System.out.println("Orbit is on escape path from planet");
-            } else {
-                System.out.println("Orbit is on escape path from sun");
-            }
-        }
-        */
 
         numberOfNodes = positionsWrtCb.size();
-        System.out.println("numberOfNodes: " + numberOfNodes);
+        // System.out.println("numberOfNodes: " + numberOfNodes);
     }
 
     public void draw(Graphics g2d) {
@@ -157,10 +148,16 @@ public class Orbit {
     }
 
     public void drawPeriapsis(Graphics2D g2d) {
-        int x = celestialBody.x_int + (int) (OrbitCalculator.scaleFactor * periapsis.getX()) + Orbiter.xdrag;
-        int y = celestialBody.y_int - (int) (OrbitCalculator.scaleFactor * periapsis.getY()) + Orbiter.ydrag;
-        g2d.fillOval(x - 3, y - 3, 6 ,6);
-        g2d.drawString(String.format("Pe: %.3f", periapsis.abs - celestialBody.radius), x, y - 5);
+        if (!isOnCrashPath) {
+            int x = celestialBody.x_int + (int) (OrbitCalculator.scaleFactor * periapsis.getX()) + Orbiter.xdrag;
+            int y = celestialBody.y_int - (int) (OrbitCalculator.scaleFactor * periapsis.getY()) + Orbiter.ydrag;
+            g2d.fillOval(x - 3, y - 3, 6, 6);
+
+            int x_offset = periapsis.getX() < apoapsis.getX() ? -55 : 5;
+            int y_offset = periapsis.getY() < apoapsis.getY() ? 10 : -10;
+
+            g2d.drawString(String.format("Pe: %.3f", periapsis.abs - celestialBody.radius), x + x_offset, y + y_offset);
+        }
     }
 
     public void drawApoapsis(Graphics2D g2d) {
@@ -168,7 +165,11 @@ public class Orbit {
             int x = celestialBody.x_int + (int) (OrbitCalculator.scaleFactor * apoapsis.getX()) + Orbiter.xdrag;
             int y = celestialBody.y_int - (int) (OrbitCalculator.scaleFactor * apoapsis.getY()) + Orbiter.ydrag;
             g2d.fillOval(x - 3, y - 3, 6, 6);
-            g2d.drawString(String.format("Ap: %.3f", apoapsis.abs - celestialBody.radius), x, y - 5);
+
+            int x_offset = apoapsis.getX() < periapsis.getX() ? -55 : 5;
+            int y_offset = apoapsis.getY() < periapsis.getY() ? 10 : -10;
+
+            g2d.drawString(String.format("Ap: %.3f", apoapsis.abs - celestialBody.radius), x + x_offset, y + y_offset);
         }
     }
 
@@ -198,8 +199,8 @@ public class Orbit {
     }
 
     public void drawUI(Graphics2D g2d, int y) {
-        g2d.drawString("Celestial body: " + celestialBody.name + (isOnEscapePath ? " (leaving SOI)" : isOnCrashPath ? " (crashing)" : ""), 10, y - 140);
-        g2d.drawString(String.format("Eccentricity = %.2f", eccentricity) + (eccentricity < 1 ? " (ellipse)" : " (hyperbola)"), 10, y - 125);
-        g2d.drawString(String.format("Semi major axis = %.2f m", semiMajorAxis), 10, y - 110);
+        g2d.drawString("Celestial body: " + celestialBody.name + (isOnEscapePath ? " (leaving SOI)" : isOnCrashPath ? " (crashing)" : ""), 10, y - 155);
+        g2d.drawString(String.format("Eccentricity = %.3f", eccentricity) + (eccentricity < 1 ? " (ellipse)" : " (hyperbola)"), 10, y - 140);
+        g2d.drawString(String.format("Semi major axis = %.3f km", semiMajorAxis), 10, y - 125);
     }
 }

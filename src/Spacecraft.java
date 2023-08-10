@@ -15,6 +15,7 @@ public class Spacecraft extends Orbiter {
         super("spacecraft");
         orbit = new Orbit(celestialBody);
         deltaV = equivalentVelocity * Math.log((dryMass + fuelMass) / dryMass);
+        setPosition(new Vector(0, 0));
     }
 
     public void update(){
@@ -23,7 +24,7 @@ public class Spacecraft extends Orbiter {
         // check for escape from SOI
         for (Planet planet : OrbitCalculator.getPlanets()) {
             if (orbit.celestialBody == planet && orbit.isOnEscapePath && nodeIndex >= orbit.numberOfNodes) {
-                System.out.println("The spacecraft is now leaving a planet's SOI"); // Spacecrafts starts to orbit the sun
+                System.out.println("The spacecraft is now leaving " + orbit.celestialBody.name + " SOI"); // Spacecrafts starts to orbit the sun
                 Star sun = OrbitCalculator.getSun();
                 Vector positionAtEscape = new Vector((double) (this.x_int - sun.x_int) / OrbitCalculator.scaleFactor,
                         (double) (sun.y_int - this.y_int) / OrbitCalculator.scaleFactor);
@@ -46,7 +47,7 @@ public class Spacecraft extends Orbiter {
                         (double) (planet.y_int - this.y_int) / OrbitCalculator.scaleFactor);
 
                 if (positionAtEncounter.getAbs() < 0.9 * planet.SOI) {
-                    System.out.println("Spacecraft is now encountering the planet");
+                    System.out.println("Spacecraft is now entering " + orbit.celestialBody.name + " SOI");
                     Vector velocityAtEncounter = velocity.subtract(planet.velocity);
 
                     orbit.celestialBody = planet;
@@ -61,7 +62,7 @@ public class Spacecraft extends Orbiter {
         }
 
         if (nodeIndex >= orbit.numberOfNodes || (orbit.isOnCrashPath && orbit.positionsWrtCb.get(nodeIndex).getAbs() < orbit.celestialBody.radius)){
-            reset(); // prevents out of bounds exception
+            reset(); // crashed or flew out of sun's SOI
             OrbitCalculator.resetPlanets();
             return;
         }
@@ -75,20 +76,24 @@ public class Spacecraft extends Orbiter {
         updateVelocity(orbit.dT);
 
         // check engine burn
-        if (engineAcceleration && Orbiter.warpIndex == 0 && fuelMass > 0) {
+        if (fuelMass > 0) {
+            if (engineAcceleration && Orbiter.warpIndex == 0) {
 
-            accelerationDirection = velocity.getAngle() + engineModeDirection;
+                accelerationDirection = velocity.getAngle() + engineModeDirection;
 
-            // Rocket equation over one timestep:
-            double massFlowRate = 1;
-            double currentMass = dryMass + fuelMass;
-            double deltaVUpdate = equivalentVelocity * Math.log(currentMass / (currentMass - massFlowRate));
-            fuelMass -= massFlowRate;
+                // Rocket equation over one timestep:
+                double massFlowRate = 1;
+                double currentMass = dryMass + fuelMass;
+                double deltaVUpdate = equivalentVelocity * Math.log(currentMass / (currentMass - massFlowRate));
+                fuelMass -= massFlowRate;
 
-            velocity.addFromRadialCoordinates(deltaVUpdate, accelerationDirection);
-            recalculateOrbit(position, velocity);
+                velocity.addFromRadialCoordinates(deltaVUpdate, accelerationDirection);
+                recalculateOrbit(position, velocity);
 
-            deltaV = equivalentVelocity * Math.log((dryMass + fuelMass) / dryMass);
+                deltaV = equivalentVelocity * Math.log((dryMass + fuelMass) / dryMass);
+            }
+        } else {
+            engineAcceleration = false;
         }
     }
 
@@ -114,6 +119,10 @@ public class Spacecraft extends Orbiter {
 
     public void setPosition(Vector position){
         this.position = position;
+    }
+
+    private Vector getPosition(){
+        return position;
     }
 
     public void updateVelocity(double dT){
@@ -191,9 +200,11 @@ public class Spacecraft extends Orbiter {
     }
 
     public void drawUI(Graphics2D g2d, int y){
-        g2d.drawString(String.format("DeltaV = %.3f m/s", deltaV), 10, y - 80);
+        g2d.drawString(String.format("DeltaV = %.3f km/s", deltaV), 10, y - 80);
         g2d.drawString("Warp speed = " + WARP_SPEEDS[warpIndex], 10, y - 65);
 
-        g2d.drawString(String.format("Velocity = %.2f m/s", velocity.getAbs()), 10, y - 95);
+        g2d.drawString(String.format("Velocity = %.3f km/s", velocity.getAbs()), 10, y - 110);
+        g2d.drawString(String.format("Height = %.3f km", getPosition().getAbs() - orbit.celestialBody.radius), 10, y - 95);
     }
+
 }

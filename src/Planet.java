@@ -1,7 +1,7 @@
 import java.awt.*;
 
 public class Planet extends CelestialBody {
-    public StaticOrbit staticOrbit;
+    private final StaticOrbit staticOrbit;
 
     public Planet(double radius, double SOI, double mu, Color color, double semiMajorAxis, double eccentricity, String name){
         super(radius, SOI, mu, color, name);
@@ -21,7 +21,7 @@ public class Planet extends CelestialBody {
     }
 
     public void reset(){
-        staticOrbit.trueAnomaly = 0;
+        staticOrbit.reset();
     }
 
 }

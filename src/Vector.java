@@ -1,6 +1,6 @@
 public class Vector {
     private double x, y;
-    double abs;
+    public double abs;
 
     Vector(double x, double y){
         this.x = x;
@@ -42,19 +42,15 @@ public class Vector {
     }
 
     public Vector add(Vector vector){
-        return new Vector(this.getX()+vector.getX(), this.getY()+vector.getY());
-    }
-
-    public void add(double x, double y){
-        this.x += x;
-        this.y += y;
+        return new Vector(this.getX() + vector.getX(), this.getY() + vector.getY());
     }
 
     public Vector subtract(Vector vector){
-        return new Vector(this.getX()-vector.getX(), this.getY()- vector.getY());
+        return new Vector(this.getX() - vector.getX(), this.getY() - vector.getY());
     }
 
     public void addFromRadialCoordinates(double radius, double angle){
-        add(radius * Math.cos(angle), radius * Math.sin(angle));
+        this.x += radius * Math.cos(angle);
+        this.y += radius * Math.sin(angle);
     }
 }

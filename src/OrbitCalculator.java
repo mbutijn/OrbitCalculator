@@ -7,17 +7,17 @@ public class OrbitCalculator extends JFrame implements KeyListener {
     private static int xBound;
     private static int yBound;
     public static int scaleFactor = 100;
-    public final static Star sun = new Star(0, 0, 0.15, 10, 0.1, Color.YELLOW);
-    public final static Planet earth = new Planet(0.06,0.75, 0.005, Color.CYAN, 2.8, 0.2, "earth");
-    public final static Planet mars = new Planet(0.03,0.45, 0.003, Color.RED, 4.9, 0.15, "mars");
+    private final static Star sun = new Star(0, 0, 0.15, 10, 0.1, Color.YELLOW);
+    private final static Planet earth = new Planet(0.06,0.75, 0.005, Color.CYAN, 2.8, 0.2, "earth");
+    private final static Planet mars = new Planet(0.03,0.45, 0.003, Color.RED, 4.9, 0.15, "mars");
     private final Spacecraft spacecraft = new Spacecraft(earth);
     private final Space space = new Space();
     private Timer timer;
     public final static double timeStep = 0.05;
     private static final ArrayList<Planet> planets = new ArrayList<>();
     private Point mousePoint;
-    public int cameraIndex = 0;
-    public boolean dragged = false;
+    private int cameraIndex = 0;
+    private boolean dragged = false;
     private Orbiter orbiter;
 
     public OrbitCalculator(String title) {
@@ -152,10 +152,10 @@ public class OrbitCalculator extends JFrame implements KeyListener {
             if (code == KeyEvent.VK_DOWN) { // retrograde engine burn
                 spacecraft.fireRetrograde();
             }
-            if (code == KeyEvent.VK_RIGHT) { // radial in for clockwise, radial out for counterclockwise
+            if (code == KeyEvent.VK_RIGHT) { //  engine burn radial in for clockwise, radial out for counterclockwise
                 spacecraft.fireRight();
             }
-            if (code == KeyEvent.VK_LEFT) { // radial in for counterclockwise, radial out for clockwise
+            if (code == KeyEvent.VK_LEFT) { //  engine burn radial in for counterclockwise, radial out for clockwise
                 spacecraft.fireLeft();
             }
         }
@@ -180,7 +180,7 @@ public class OrbitCalculator extends JFrame implements KeyListener {
             spacecraft.reset();
             resetPlanets();
         }
-        if (code == KeyEvent.VK_V){ // make camera focus on next objet
+        if (code == KeyEvent.VK_V){ // make camera focus on next object
             dragged = false;
             cameraIndex++;
             cameraIndex = cameraIndex > 3 ? 0 : cameraIndex;
@@ -211,32 +211,31 @@ public class OrbitCalculator extends JFrame implements KeyListener {
             g2d.setColor(Color.BLACK);
             g2d.fillRect(0, 0, xBound, yBound);
 
-            // draw orbit
-            g2d.setColor(Color.WHITE);
-            spacecraft.orbit.draw(g2d);
-
-            // draw spacecraft
-            spacecraft.draw(g2d);
-
             // draw celestialBodies
             sun.draw(g2d);
             earth.draw(g2d);
             mars.draw(g2d);
 
+            // draw orbit
+            g2d.setColor(Color.LIGHT_GRAY);
+            spacecraft.orbit.draw(g2d);
+
             // draw extremes
-            g2d.setColor(Color.WHITE);
             spacecraft.orbit.drawPeriapsis(g2d);
             spacecraft.orbit.drawApoapsis(g2d);
 
             // draw SOI
-            g2d.setColor(Color.GRAY);
             spacecraft.orbit.drawSOI(g2d);
+
+            // draw spacecraft
+            g2d.setColor(Color.WHITE);
+            spacecraft.draw(g2d);
 
             // draw engine thrust direction
             spacecraft.drawThrustVector(g2d);
 
             // draw UI overlay
-            g2d.fillRect(0, yBound - 160, 190, 160);
+            g2d.fillRect(0, yBound - 175, 190, 175);
             g2d.setColor(Color.BLACK);
             spacecraft.orbit.drawUI(g2d, yBound);
             g2d.drawString("Camera position: " + (dragged ? "free" : orbiter.name), 10, yBound - 50);
