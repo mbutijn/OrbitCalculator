@@ -10,6 +10,7 @@ public class Spacecraft extends Orbiter {
     private double deltaV;
     private final double dryMass = 500;
     private final double equivalentVelocity = 2.7;
+    private double massFlowRate = 1;
 
     public Spacecraft(CelestialBody celestialBody){
         super("spacecraft");
@@ -76,13 +77,12 @@ public class Spacecraft extends Orbiter {
         updateVelocity(orbit.dT);
 
         // check engine burn
-        if (fuelMass > 0) {
+        if (fuelMass > 0 && massFlowRate > 0) {
             if (engineAcceleration && Orbiter.warpIndex == 0) {
 
                 accelerationDirection = velocity.getAngle() + engineModeDirection;
 
                 // Rocket equation over one timestep:
-                double massFlowRate = 1;
                 double currentMass = dryMass + fuelMass;
                 double deltaVUpdate = equivalentVelocity * Math.log(currentMass / (currentMass - massFlowRate));
                 fuelMass -= massFlowRate;
@@ -95,6 +95,14 @@ public class Spacecraft extends Orbiter {
         } else {
             engineAcceleration = false;
         }
+    }
+
+    public void throttleUp() {
+        massFlowRate = Math.min(1.0, massFlowRate + 0.1);
+    }
+
+    public void throttleDown() {
+        massFlowRate = Math.max(0.0, massFlowRate - 0.1);
     }
 
     public void initStartVectors(){
@@ -169,6 +177,7 @@ public class Spacecraft extends Orbiter {
         nodeIndex = 0;
         warpIndex = 0;
         deltaV = equivalentVelocity * Math.log((dryMass + fuelMass) / dryMass);
+        massFlowRate = 1.0;
     }
 
     public void firePrograde() {
@@ -200,11 +209,12 @@ public class Spacecraft extends Orbiter {
     }
 
     public void drawUI(Graphics2D g2d, int y){
-        g2d.drawString(String.format("DeltaV = %.3f km/s", deltaV), 10, y - 80);
+        g2d.drawString(String.format("DeltaV = %.3f km/s", deltaV), 10, y - 95);
+        g2d.drawString(String.format("Throttle = %.0f%%", 100 * massFlowRate), 10, y - 80);
         g2d.drawString("Warp speed = " + WARP_SPEEDS[warpIndex], 10, y - 65);
 
-        g2d.drawString(String.format("Velocity = %.3f km/s", velocity.getAbs()), 10, y - 110);
-        g2d.drawString(String.format("Height = %.3f km", getPosition().getAbs() - orbit.celestialBody.radius), 10, y - 95);
+        g2d.drawString(String.format("Velocity = %.3f km/s", velocity.getAbs()), 10, y - 125);
+        g2d.drawString(String.format("Height = %.3f km", getPosition().getAbs() - orbit.celestialBody.radius), 10, y - 110);
     }
 
 }

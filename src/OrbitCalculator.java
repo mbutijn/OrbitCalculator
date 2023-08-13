@@ -18,6 +18,7 @@ public class OrbitCalculator extends JFrame implements KeyListener {
     private Point mousePoint;
     private int cameraIndex = 0;
     private boolean dragged = false;
+    private boolean zoomedOut, zoomedIn;
     private Orbiter orbiter;
 
     public OrbitCalculator(String title) {
@@ -35,15 +36,9 @@ public class OrbitCalculator extends JFrame implements KeyListener {
 
         addMouseWheelListener(e -> {
             if (e.getWheelRotation() == 1){
-                scaleFactor = Math.max(50, scaleFactor - 5);
+                zoomedOut = true;
             } else {
-                scaleFactor = Math.min(250, scaleFactor + 5);
-            }
-            System.out.println("zoom level: " + scaleFactor);
-
-            sun.updateRadius();
-            for (Planet planet : getPlanets()) {
-                planet.updateRadius();
+                zoomedIn = true;
             }
         });
 
@@ -110,12 +105,27 @@ public class OrbitCalculator extends JFrame implements KeyListener {
     }
 
     private final ActionListener update = e -> {
-        for (Planet planet : getPlanets()){
-            planet.update(timeStep);
-            planet.updatePixelPosition();
+//        long beginTime = System.currentTimeMillis();
+
+        if (zoomedOut) {
+            scaleFactor = Math.max(50, scaleFactor - 5);
+            updateRadii();
+            zoomedOut = false;
+        } else if (zoomedIn) {
+            scaleFactor = Math.min(250, scaleFactor + 5);
+            updateRadii();
+            zoomedIn = false;
         }
 
+        for (Planet planet : getPlanets()){
+            planet.update(timeStep);
+        }
         spacecraft.update();
+
+        // Update all pixel locations
+        for (Planet planet : getPlanets()) {
+            planet.updatePixelPosition();
+        }
         spacecraft.updatePixelPosition();
 
         space.repaint();
@@ -123,7 +133,17 @@ public class OrbitCalculator extends JFrame implements KeyListener {
         if (!dragged){
             setCameraPosition();
         }
+
+//        long endTime = System.currentTimeMillis();
+//        System.out.println("elapsed: " + (endTime - beginTime));
     };
+
+    public void updateRadii(){
+        sun.updateRadius();
+        for (Planet planet : getPlanets()) {
+            planet.updateRadius();
+        }
+    }
 
     public void setCameraPosition(){
         switch (cameraIndex) {
@@ -188,6 +208,12 @@ public class OrbitCalculator extends JFrame implements KeyListener {
             setCameraPosition();
             repaint();
         }
+        if (code == KeyEvent.VK_PAGE_UP){
+            spacecraft.throttleUp();
+        }
+        if (code == KeyEvent.VK_PAGE_DOWN){
+            spacecraft.throttleDown();
+        }
     }
 
     public static void resetPlanets() {
@@ -235,7 +261,7 @@ public class OrbitCalculator extends JFrame implements KeyListener {
             spacecraft.drawThrustVector(g2d);
 
             // draw UI overlay
-            g2d.fillRect(0, yBound - 175, 190, 175);
+            g2d.fillRect(0, yBound - 190, 190, 190);
             g2d.setColor(Color.BLACK);
             spacecraft.orbit.drawUI(g2d, yBound);
             g2d.drawString("Camera position: " + (dragged ? "free" : orbiter.name), 10, yBound - 50);

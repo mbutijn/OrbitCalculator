@@ -40,8 +40,8 @@ public class Orbit {
         // vis viva equation
         semiMajorAxis = distance_start / (2 - (distance_start * v_start_abs2 / celestialBody.mu));
 
-        double dAdt = tw_area / dT; // twice area swept over time
-        // System.out.println("dAdt: " + dAdt);
+        double dAdt = tw_area / dT; // area swept over time
+        // System.out.println("dAdt Spacecraft: " + dAdt);
 
         double eccentricitySquared, semiLatusRectum, distance_apoapsis = 0;
         if (semiMajorAxis > 0) { // ellipse
@@ -199,8 +199,8 @@ public class Orbit {
     }
 
     public void drawUI(Graphics2D g2d, int y) {
-        g2d.drawString("Celestial body: " + celestialBody.name + (isOnEscapePath ? " (leaving SOI)" : isOnCrashPath ? " (crashing)" : ""), 10, y - 155);
-        g2d.drawString(String.format("Eccentricity = %.3f", eccentricity) + (eccentricity < 1 ? " (ellipse)" : " (hyperbola)"), 10, y - 140);
-        g2d.drawString(String.format("Semi major axis = %.3f km", semiMajorAxis), 10, y - 125);
+        g2d.drawString("Celestial body: " + celestialBody.name + (isOnEscapePath ? " (leaving SOI)" : isOnCrashPath ? " (crashing)" : ""), 10, y - 170);
+        g2d.drawString(String.format("Eccentricity = %.3f", eccentricity) + (eccentricity < 1 ? " (ellipse)" : " (hyperbola)"), 10, y - 155);
+        g2d.drawString(String.format("Semi major axis = %.3f km", semiMajorAxis), 10, y - 140);
     }
 }
