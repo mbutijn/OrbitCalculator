@@ -8,7 +8,7 @@ public class Orbit {
     private final Vector periapsis = new Vector(0, 0);
     private final Vector apoapsis = new Vector(0, 0);
     public final double dT = 0.001;
-    public int numberOfNodes, skipIndex = (int) (1000 * OrbitCalculator.timeStep);
+    public int numberOfNodes;
     public CelestialBody celestialBody;
     public boolean isOnEscapePath, isOnCrashPath;
     private double semiMajorAxis, eccentricity;
@@ -182,11 +182,8 @@ public class Orbit {
 
     public void reset(){
         System.out.println("Orbit reset");
-        skipIndex = (int) (1000 * OrbitCalculator.timeStep);
         isOnEscapePath = false;
-
         celestialBody = OrbitCalculator.getPlanets().get(0);
-
     }
 
     public void updatePixelPosition() {

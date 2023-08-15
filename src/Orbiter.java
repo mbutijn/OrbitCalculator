@@ -2,7 +2,7 @@ import java.awt.*;
 
 public class Orbiter {
     public static int warpIndex = 0;
-    public static final int[] WARP_SPEEDS = {1, 5, 10, 50, 100}; //, 500 1000, 10000, 100000};
+    public static final int[] WARP_SPEEDS = {1, 5, 10, 50, 100, 500, 1000}; //, 10000, 100000};
     protected final Vector velocity = new Vector(0, 0);
     protected Vector position;
     protected Vector oldPosition = new Vector(0, 0);

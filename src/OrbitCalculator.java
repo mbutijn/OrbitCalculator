@@ -118,7 +118,7 @@ public class OrbitCalculator extends JFrame implements KeyListener {
         }
 
         for (Planet planet : getPlanets()){
-            planet.update(timeStep);
+            planet.update(0.001);
         }
         spacecraft.update();
 

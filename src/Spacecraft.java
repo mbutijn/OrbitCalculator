@@ -20,7 +20,7 @@ public class Spacecraft extends Orbiter {
     }
 
     public void update(){
-        nodeIndex += orbit.skipIndex * WARP_SPEEDS[warpIndex];
+        nodeIndex += WARP_SPEEDS[warpIndex];
 
         // check for escape from SOI
         for (Planet planet : OrbitCalculator.getPlanets()) {
@@ -149,22 +149,6 @@ public class Spacecraft extends Orbiter {
         g2d.fillRect(x_int - 2 + xdrag, y_int - 2 + ydrag, 4,4);
     }
 
-    public void drawThrustVector(Graphics2D g2d){
-        if (engineAcceleration) {
-            int pointX = x_int + (int) (Math.round(15 * Math.cos(accelerationDirection))) + xdrag;
-            int pointY = y_int - (int) (Math.round(15 * Math.sin(accelerationDirection))) + ydrag;
-            int pointX2 = x_int + (int) (Math.round(10 * Math.cos(accelerationDirection + 0.5))) + xdrag;
-            int pointY2 = y_int - (int) (Math.round(10 * Math.sin(accelerationDirection + 0.5))) + ydrag;
-            int pointX3 = x_int + (int) (Math.round(10 * Math.cos(accelerationDirection - 0.5))) + xdrag;
-            int pointY3 = y_int - (int) (Math.round(10 * Math.sin(accelerationDirection - 0.5))) + ydrag;
-
-            // draw arrow
-            g2d.drawLine(x_int + xdrag, y_int + ydrag, pointX, pointY);
-            g2d.drawLine(pointX, pointY, pointX2, pointY2);
-            g2d.drawLine(pointX, pointY, pointX3, pointY3);
-        }
-    }
-
     public void setOldPosition(Vector oldPosition) {
         this.oldPosition = oldPosition;
     }
@@ -205,6 +189,22 @@ public class Spacecraft extends Orbiter {
         if (fuelMass > 0) {
             engineAcceleration = true;
             engineModeDirection = 0.5 * Math.PI;
+        }
+    }
+
+    public void drawThrustVector(Graphics2D g2d){
+        if (engineAcceleration) {
+            int pointX = x_int + (int) (Math.round(15 * Math.cos(accelerationDirection))) + xdrag;
+            int pointY = y_int - (int) (Math.round(15 * Math.sin(accelerationDirection))) + ydrag;
+            int pointX2 = x_int + (int) (Math.round(10 * Math.cos(accelerationDirection + 0.5))) + xdrag;
+            int pointY2 = y_int - (int) (Math.round(10 * Math.sin(accelerationDirection + 0.5))) + ydrag;
+            int pointX3 = x_int + (int) (Math.round(10 * Math.cos(accelerationDirection - 0.5))) + xdrag;
+            int pointY3 = y_int - (int) (Math.round(10 * Math.sin(accelerationDirection - 0.5))) + ydrag;
+
+            // draw arrow
+            g2d.drawLine(x_int + xdrag, y_int + ydrag, pointX, pointY);
+            g2d.drawLine(pointX, pointY, pointX2, pointY2);
+            g2d.drawLine(pointX, pointY, pointX3, pointY3);
         }
     }
 
