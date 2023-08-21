@@ -3,6 +3,7 @@ import java.awt.*;
 public class Spacecraft extends Orbiter {
     public Orbit orbit;
     private int nodeIndex = 0;
+    private int subIndex = 0;
     public boolean engineAcceleration = false;
     private double engineModeDirection = 0;
     private double accelerationDirection;
@@ -10,7 +11,7 @@ public class Spacecraft extends Orbiter {
     private double deltaV;
     private final double dryMass = 500;
     private final double equivalentVelocity = 2.7;
-    private double massFlowRate = 1;
+    private double massFlowRate = 1.0;
 
     public Spacecraft(CelestialBody celestialBody){
         super("spacecraft");
@@ -20,7 +21,16 @@ public class Spacecraft extends Orbiter {
     }
 
     public void update(){
-        nodeIndex += WARP_SPEEDS[warpIndex];
+        if (subIndex < subIndexMax){
+            subIndex ++; // spacecraft does not move
+        } else {
+            if (warpIndex > 2) { // spacecraft moves
+                nodeIndex += WARP_SPEEDS[warpIndex - 2];
+            } else {
+                nodeIndex ++;
+            }
+            subIndex = 0;
+        }
 
         // check for escape from SOI
         for (Planet planet : OrbitCalculator.getPlanets()) {
@@ -68,13 +78,15 @@ public class Spacecraft extends Orbiter {
             return;
         }
 
-        setPosition(orbit.positionsWrtCb.get(nodeIndex));
-        if (nodeIndex == 0){
-            setOldPosition(orbit.positionsWrtCb.get(orbit.numberOfNodes - 1));
-        } else {
-            setOldPosition(orbit.positionsWrtCb.get(nodeIndex - 1));
+        if (subIndex == 0) {
+            setPosition(orbit.positionsWrtCb.get(nodeIndex));
+            if (nodeIndex == 0) {
+                setOldPosition(orbit.positionsWrtCb.get(orbit.numberOfNodes - 1));
+            } else {
+                setOldPosition(orbit.positionsWrtCb.get(nodeIndex - 1));
+            }
+            updateVelocity(orbit.dT);
         }
-        updateVelocity(orbit.dT);
 
         // check engine burn
         if (fuelMass > 0 && massFlowRate > 0) {
@@ -90,6 +102,7 @@ public class Spacecraft extends Orbiter {
                 velocity.addFromRadialCoordinates(deltaVUpdate, accelerationDirection);
                 recalculateOrbit(position, velocity);
 
+                // Remaining deltaV
                 deltaV = equivalentVelocity * Math.log((dryMass + fuelMass) / dryMass);
             }
         } else {
@@ -98,11 +111,11 @@ public class Spacecraft extends Orbiter {
     }
 
     public void throttleUp() {
-        massFlowRate = Math.min(1.0, massFlowRate + 0.1);
+        massFlowRate = Math.min(1.0, massFlowRate + 0.05);
     }
 
     public void throttleDown() {
-        massFlowRate = Math.max(0.0, massFlowRate - 0.1);
+        massFlowRate = Math.max(0.0, massFlowRate - 0.05);
     }
 
     public void initStartVectors(){

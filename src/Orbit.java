@@ -88,10 +88,10 @@ public class Orbit {
 
         periapsis.setVectorFromRadiusAndAngle(distance_periapsis, periapsis_angle);
 
-        // double Vp = Math.sqrt(2 * distance_apoapsis / (distance_periapsis * (distance_apoapsis + distance_periapsis))); // periapsis velocity
+        // double Vp = Math.sqrt(celestialBody.mu * 2 * distance_apoapsis / (distance_periapsis * (distance_apoapsis + distance_periapsis))); // periapsis velocity
         // System.out.println("Vp: " + Vp);
 
-        // double Va = Math.sqrt(2 * distance_periapsis / (distance_apoapsis * (distance_apoapsis + distance_periapsis))); // apoapsis velocity
+        // double Va = Math.sqrt(celestialBody.mu * 2 * distance_periapsis / (distance_apoapsis * (distance_apoapsis + distance_periapsis))); // apoapsis velocity
         // System.out.println("Va: " + Va);
 
         // Make the orbital trajectory

@@ -83,7 +83,7 @@ public class OrbitCalculator extends JFrame implements KeyListener {
         planets.add(mars);
         setCameraPosition();
 
-        spacecraft.initStartVectors(); // starts in elliptical orbit around earth
+        spacecraft.initStartVectors(); // spacecraft starts in circular orbit around earth
 
         // start the simulation
         timer = new Timer((int) (1000 * timeStep), update);
@@ -118,7 +118,7 @@ public class OrbitCalculator extends JFrame implements KeyListener {
         }
 
         for (Planet planet : getPlanets()){
-            planet.update(0.001);
+            planet.update(0.0001);
         }
         spacecraft.update();
 
@@ -172,10 +172,10 @@ public class OrbitCalculator extends JFrame implements KeyListener {
             if (code == KeyEvent.VK_DOWN) { // retrograde engine burn
                 spacecraft.fireRetrograde();
             }
-            if (code == KeyEvent.VK_RIGHT) { //  engine burn radial in for clockwise, radial out for counterclockwise
+            if (code == KeyEvent.VK_RIGHT) { // engine burn radial in for clockwise, radial out for counterclockwise
                 spacecraft.fireRight();
             }
-            if (code == KeyEvent.VK_LEFT) { //  engine burn radial in for counterclockwise, radial out for clockwise
+            if (code == KeyEvent.VK_LEFT) { // engine burn radial in for counterclockwise, radial out for clockwise
                 spacecraft.fireLeft();
             }
         }
@@ -237,11 +237,6 @@ public class OrbitCalculator extends JFrame implements KeyListener {
             g2d.setColor(Color.BLACK);
             g2d.fillRect(0, 0, xBound, yBound);
 
-            // draw celestialBodies
-            sun.draw(g2d);
-            earth.draw(g2d);
-            mars.draw(g2d);
-
             // draw orbit
             g2d.setColor(Color.LIGHT_GRAY);
             spacecraft.orbit.draw(g2d);
@@ -252,6 +247,11 @@ public class OrbitCalculator extends JFrame implements KeyListener {
 
             // draw SOI
             spacecraft.orbit.drawSOI(g2d);
+
+            // draw celestialBodies
+            sun.draw(g2d);
+            earth.draw(g2d);
+            mars.draw(g2d);
 
             // draw spacecraft
             g2d.setColor(Color.WHITE);

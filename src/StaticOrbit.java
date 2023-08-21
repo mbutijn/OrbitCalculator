@@ -11,7 +11,7 @@ public class StaticOrbit {
         semiLatusRectum = semiMajorAxis * (1 - eccentricitySquared);
 
         reset();
-        dAdt = 2 * Math.PI * semiMajorAxis * semiMinorAxis / period;
+        dAdt = Math.PI * semiMajorAxis * semiMinorAxis / period;
         periapsis_angle = 0;
 
         position = new Vector(0, 0);
