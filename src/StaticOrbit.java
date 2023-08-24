@@ -7,11 +7,13 @@ public class StaticOrbit {
         this.eccentricity = eccentricity;
         double eccentricitySquared = eccentricity * eccentricity;
         double semiMinorAxis = semiMajorAxis * Math.sqrt(1 - eccentricitySquared);
+        System.out.println("periapsis height " + (semiMajorAxis * (1 - eccentricity) - OrbitCalculator.getSun().radius));
+        System.out.println("apoapsis height " + (semiMajorAxis * (1 + eccentricity) - OrbitCalculator.getSun().radius));
         double period = 2 * Math.PI * Math.sqrt(semiMajorAxis * semiMajorAxis * semiMajorAxis / OrbitCalculator.getSun().mu);
         semiLatusRectum = semiMajorAxis * (1 - eccentricitySquared);
 
         reset();
-        dAdt = Math.PI * semiMajorAxis * semiMinorAxis / period;
+        dAdt = 2 * Math.PI * semiMajorAxis * semiMinorAxis / period;
         periapsis_angle = 0;
 
         position = new Vector(0, 0);

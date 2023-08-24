@@ -178,28 +178,28 @@ public class Spacecraft extends Orbiter {
     }
 
     public void firePrograde() {
-        if (fuelMass > 0) {
+        if (fuelMass > 0 && massFlowRate > 0) {
             engineAcceleration = true;
             engineModeDirection = 0;
         }
     }
 
     public void fireRetrograde() {
-        if (fuelMass > 0) {
+        if (fuelMass > 0 && massFlowRate > 0) {
             engineAcceleration = true;
             engineModeDirection = Math.PI;
         }
     }
 
     public void fireRight() {
-        if (fuelMass > 0) {
+        if (fuelMass > 0 && massFlowRate > 0) {
             engineAcceleration = true;
             engineModeDirection = 1.5 * Math.PI;
         }
     }
 
     public void fireLeft() {
-        if (fuelMass > 0) {
+        if (fuelMass > 0 && massFlowRate > 0) {
             engineAcceleration = true;
             engineModeDirection = 0.5 * Math.PI;
         }
