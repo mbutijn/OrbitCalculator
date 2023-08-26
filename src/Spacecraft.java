@@ -11,6 +11,8 @@ public class Spacecraft extends Orbiter {
     private double deltaV;
     private final double dryMass = 500;
     private final double equivalentVelocity = 2.7;
+    private final double [] massFlowRates = {0, 0.01, 0.02, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.8, 1.0};
+    private int throttleIndex = massFlowRates.length;
     private double massFlowRate = 1.0;
 
     public Spacecraft(CelestialBody celestialBody){
@@ -24,26 +26,27 @@ public class Spacecraft extends Orbiter {
         if (subIndex < subIndexMax){
             subIndex ++; // spacecraft does not move
         } else {
-            if (warpIndex > 2) { // spacecraft moves
-                nodeIndex += WARP_SPEEDS[warpIndex - 2];
-            } else {
-                nodeIndex ++;
-            }
+            updateNodeIndex();
             subIndex = 0;
         }
 
-        // check for escape from SOI
+        // check rotation completed (only applicable for ellipse)
+        if (!orbit.isOnEscapePath && !orbit.isOnCrashPath && nodeIndex >= orbit.numberOfNodes) {
+            nodeIndex = nodeIndex % orbit.numberOfNodes;
+        }
+
+        // check for escape from SOI of planet
         for (Planet planet : OrbitCalculator.getPlanets()) {
             if (orbit.celestialBody == planet && orbit.isOnEscapePath && nodeIndex >= orbit.numberOfNodes) {
-                System.out.println("The spacecraft is now leaving " + orbit.celestialBody.name + " SOI"); // Spacecrafts starts to orbit the sun
+                System.out.println("The spacecraft is now leaving " + planet.name + " SOI"); // Spacecrafts starts to orbit the sun
                 Star sun = OrbitCalculator.getSun();
-                Vector positionAtEscape = new Vector((double) (this.x_int - sun.x_int) / OrbitCalculator.scaleFactor,
-                        (double) (sun.y_int - this.y_int) / OrbitCalculator.scaleFactor);
-
-                Vector velocityAtEscape = velocity.add(orbit.celestialBody.velocity);
+                Vector positionAtEscape = planet.position.add(position);
+                Vector velocityAtEscape = planet.velocity.add(velocity);
 
                 orbit.celestialBody = sun;
                 recalculateOrbit(positionAtEscape, velocityAtEscape);
+                updateNodeIndex();
+
                 setPosition(orbit.positionsWrtCb.get(nodeIndex));
                 updatePixelPosition();
 
@@ -54,11 +57,10 @@ public class Spacecraft extends Orbiter {
         // check for encounter planet's SOI
         if (orbit.celestialBody == OrbitCalculator.getSun()) {
             for (Planet planet : OrbitCalculator.getPlanets()) {
-                Vector positionAtEncounter = new Vector((double) (this.x_int - planet.x_int) / OrbitCalculator.scaleFactor,
-                        (double) (planet.y_int - this.y_int) / OrbitCalculator.scaleFactor);
+                Vector positionAtEncounter = position.subtract(planet.position);
 
-                if (positionAtEncounter.getAbs() < 0.9 * planet.SOI) {
-                    System.out.println("Spacecraft is now entering " + orbit.celestialBody.name + " SOI");
+                if (positionAtEncounter.getAbs() < planet.SOI) {
+                    System.out.println("Spacecraft is now entering " + planet.name + " SOI");
                     Vector velocityAtEncounter = velocity.subtract(planet.velocity);
 
                     orbit.celestialBody = planet;
@@ -68,16 +70,14 @@ public class Spacecraft extends Orbiter {
             }
         }
 
-        if (!orbit.isOnEscapePath && !orbit.isOnCrashPath && nodeIndex >= orbit.numberOfNodes) { // reset nodeIndex after every rotation completed
-            nodeIndex = nodeIndex % orbit.numberOfNodes;
-        }
-
-        if (nodeIndex >= orbit.numberOfNodes || (orbit.isOnCrashPath && orbit.positionsWrtCb.get(nodeIndex).getAbs() < orbit.celestialBody.radius)){
-            reset(); // crashed or flew out of sun's SOI
+        // check flew out of sun's SOI or crashed
+        if (nodeIndex >= orbit.numberOfNodes || orbit.positionsWrtCb.get(nodeIndex).getAbs() < orbit.celestialBody.radius){
+            reset();
             OrbitCalculator.resetPlanets();
             return;
         }
 
+        // update vectors
         if (subIndex == 0) {
             setPosition(orbit.positionsWrtCb.get(nodeIndex));
             if (nodeIndex == 0) {
@@ -88,7 +88,7 @@ public class Spacecraft extends Orbiter {
             updateVelocity(orbit.dT);
         }
 
-        // check engine burn
+        // check engine acceleration
         if (fuelMass > 0 && massFlowRate > 0) {
             if (engineAcceleration && Orbiter.warpIndex == 0) {
 
@@ -110,12 +110,22 @@ public class Spacecraft extends Orbiter {
         }
     }
 
+    private void updateNodeIndex(){
+        if (warpIndex > 2) { // spacecraft moves
+            nodeIndex += WARP_SPEEDS[warpIndex - 2];
+        } else {
+            nodeIndex ++;
+        }
+    }
+
     public void throttleUp() {
-        massFlowRate = Math.min(1.0, massFlowRate + 0.05);
+        throttleIndex = Math.min(massFlowRates.length - 1, throttleIndex + 1);
+        massFlowRate = massFlowRates[throttleIndex];
     }
 
     public void throttleDown() {
-        massFlowRate = Math.max(0.0, massFlowRate - 0.05);
+        throttleIndex = Math.max(0, throttleIndex - 1);
+        massFlowRate = massFlowRates[throttleIndex];
     }
 
     public void initStartVectors(){
@@ -171,9 +181,9 @@ public class Spacecraft extends Orbiter {
         orbit.reset();
         initStartVectors();
         fuelMass = 500;
-        nodeIndex = 0;
         warpIndex = 0;
         deltaV = equivalentVelocity * Math.log((dryMass + fuelMass) / dryMass);
+        throttleIndex = massFlowRates.length;
         massFlowRate = 1.0;
     }
 

@@ -7,7 +7,7 @@ public class OrbitCalculator extends JFrame implements KeyListener {
     private static int xBound;
     private static int yBound;
     public static int scaleFactor = 100;
-    private final static Star sun = new Star(0, 0, 0.15, 10, 0.1, Color.YELLOW);
+    private final static Star sun = new Star(0.15, 10, 0.1, Color.YELLOW);
     private final static Planet earth = new Planet(0.06,0.75, 0.005, Color.CYAN, 2.8, 0.2, "earth");
     private final static Planet mars = new Planet(0.03,0.45, 0.003, Color.RED, 4.9, 0.15, "mars");
     private final Spacecraft spacecraft = new Spacecraft(earth);
