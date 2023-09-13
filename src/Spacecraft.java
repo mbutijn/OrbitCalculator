@@ -39,12 +39,8 @@ public class Spacecraft extends Orbiter {
         for (Planet planet : OrbitCalculator.getPlanets()) {
             if (orbit.celestialBody == planet && orbit.isOnEscapePath && nodeIndex >= orbit.numberOfNodes) {
                 System.out.println("The spacecraft is now leaving " + planet.name + " SOI"); // Spacecrafts starts to orbit the sun
-                Star sun = OrbitCalculator.getSun();
-                Vector positionAtEscape = planet.position.add(position);
-                Vector velocityAtEscape = planet.velocity.add(velocity);
-
-                orbit.celestialBody = sun;
-                recalculateOrbit(positionAtEscape, velocityAtEscape);
+                orbit.celestialBody = OrbitCalculator.getSun();
+                recalculateOrbit(planet.position.add(position), planet.velocity.add(velocity));
                 updateNodeIndex();
 
                 setPosition(orbit.positionsWrtCb.get(nodeIndex));
@@ -61,10 +57,9 @@ public class Spacecraft extends Orbiter {
 
                 if (positionAtEncounter.getAbs() < planet.SOI) {
                     System.out.println("Spacecraft is now entering " + planet.name + " SOI");
-                    Vector velocityAtEncounter = velocity.subtract(planet.velocity);
 
                     orbit.celestialBody = planet;
-                    recalculateOrbit(positionAtEncounter, velocityAtEncounter);
+                    recalculateOrbit(positionAtEncounter, velocity.subtract(planet.velocity));
                     return;
                 }
             }
@@ -137,6 +132,8 @@ public class Spacecraft extends Orbiter {
 
         recalculateOrbit(position, velocity); // ellipse
         orbit.updatePixelPosition();
+
+        setPosition(orbit.positionsWrtCb.get(nodeIndex));
     }
 
     public void recalculateOrbit(Vector position, Vector velocity){

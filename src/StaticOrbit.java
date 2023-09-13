@@ -1,5 +1,5 @@
 public class StaticOrbit {
-    private final double semiLatusRectum, eccentricity, dAdt, periapsis_angle;
+    private final double semiLatusRectum, eccentricity, twdAdt, argumentOfPeriapsis;
     private double trueAnomaly;
     private final Vector position;
 
@@ -11,21 +11,21 @@ public class StaticOrbit {
         semiLatusRectum = semiMajorAxis * (1 - eccentricitySquared);
 
         reset();
-        dAdt = 2 * Math.PI * semiMajorAxis * semiMinorAxis / period;
-        periapsis_angle = 0;
+        twdAdt = 2 * Math.PI * semiMajorAxis * semiMinorAxis / period; // = twice dA/dt
+        argumentOfPeriapsis = 0;
 
         position = new Vector(0, 0);
     }
 
     public Vector updatePosition(double timeStep){
         double distance = semiLatusRectum / (1 + eccentricity * Math.cos(trueAnomaly));
-        double angularVelocity = dAdt / (distance * distance);
+        double angularVelocity = twdAdt / (distance * distance);
         trueAnomaly += angularVelocity * timeStep;
         if (trueAnomaly > 2 * Math.PI){
             trueAnomaly -= 2 * Math.PI;
         }
 
-        position.setVectorFromRadiusAndAngle(distance, periapsis_angle + trueAnomaly);
+        position.setVectorFromRadiusAndAngle(distance, argumentOfPeriapsis + trueAnomaly);
 
         return position;
     }

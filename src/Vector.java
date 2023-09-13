@@ -45,6 +45,10 @@ public class Vector {
         return new Vector(this.getX() + vector.getX(), this.getY() + vector.getY());
     }
 
+    public Vector add(double x, double y){
+        return new Vector(this.x += x, this.y += y);
+    }
+
     public Vector subtract(Vector vector){
         return new Vector(this.getX() - vector.getX(), this.getY() - vector.getY());
     }
@@ -52,5 +56,13 @@ public class Vector {
     public void addFromRadialCoordinates(double radius, double angle){
         this.x += radius * Math.cos(angle);
         this.y += radius * Math.sin(angle);
+    }
+
+    public double dotMultiplication(Vector vector) {
+        return getX() * vector.getX() + getY() * vector.getY();
+    }
+
+    public double crossMultiplication(Vector vector){
+        return getX() * vector.getY() - getY() * vector.getX();
     }
 }
