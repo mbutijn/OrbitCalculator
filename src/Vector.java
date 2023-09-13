@@ -45,10 +45,6 @@ public class Vector {
         return new Vector(this.getX() + vector.getX(), this.getY() + vector.getY());
     }
 
-    public Vector add(double x, double y){
-        return new Vector(this.x += x, this.y += y);
-    }
-
     public Vector subtract(Vector vector){
         return new Vector(this.getX() - vector.getX(), this.getY() - vector.getY());
     }

@@ -22,7 +22,7 @@ public class Orbit {
         double v_start_abs = startVelocity.getAbs();
         double v_start_abs2 = v_start_abs * v_start_abs;
 
-        Vector secondPosition = startPosition.add(dT * startVelocity.getX(), dT * startVelocity.getY());
+        Vector secondPosition = startPosition.add(new Vector(dT * startVelocity.getX(), dT * startVelocity.getY()));
         boolean descending = secondPosition.getAbs() < distance_start;
         // System.out.println("orbiter descending: " + descending);
 
@@ -71,7 +71,7 @@ public class Orbit {
         // double Va = Math.sqrt(celestialBody.mu * 2 * distance_periapsis / (distance_apoapsis * (distance_apoapsis + distance_periapsis))); // apoapsis velocity
         // System.out.println("Va: " + Va);
 
-        // make the orbital trajectory around the celestial body
+        // Make the orbital trajectory
         double trueAnomaly = trueAnomalyStart;
         double angularVelocity = 0;
         double distance = distance_start;
