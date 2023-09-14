@@ -22,8 +22,8 @@ public class Orbit {
         double v_start_abs = startVelocity.getAbs();
         double v_start_abs2 = v_start_abs * v_start_abs;
 
-        Vector secondPosition = startPosition.add(new Vector(dT * startVelocity.getX(), dT * startVelocity.getY()));
-        boolean descending = secondPosition.getAbs() < distance_start;
+        double difference = startPosition.getAngle() - startVelocity.getAngle();
+        boolean descending = (difference > 0.5 * Math.PI && difference < 1.5 * Math.PI) || (difference < -0.5*Math.PI && difference > -1.5 * Math.PI);
         // System.out.println("orbiter descending: " + descending);
 
         // calculate specific angular momentum
@@ -31,9 +31,6 @@ public class Orbit {
         // System.out.println("angularMomentum: " + angularMomentum);
 
         boolean isCCW = angularMomentum > 0;
-        if (startPosition.getX() < 0 && startPosition.getAngle() * secondPosition.getAngle() < 0) {
-            isCCW = !isCCW; // correct for bug at values of angle around pi and -pi
-        }
         // System.out.println("orbit is counter clockwise: " + isCCW);
 
         // vis viva equation
@@ -71,7 +68,7 @@ public class Orbit {
         // double Va = Math.sqrt(celestialBody.mu * 2 * distance_periapsis / (distance_apoapsis * (distance_apoapsis + distance_periapsis))); // apoapsis velocity
         // System.out.println("Va: " + Va);
 
-        // Make the orbital trajectory
+        // make the orbital trajectory around the celestial body
         double trueAnomaly = trueAnomalyStart;
         double angularVelocity = 0;
         double distance = distance_start;
