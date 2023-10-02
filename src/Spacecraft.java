@@ -228,13 +228,23 @@ public class Spacecraft extends Orbiter {
         }
     }
 
-    public void drawUI(Graphics2D g2d, int y){
-        g2d.drawString(String.format("DeltaV = %.3f km/s", deltaV), 10, y - 95);
-        g2d.drawString(String.format("Throttle = %.0f%%", 100 * massFlowRate), 10, y - 80);
-        g2d.drawString("Warp speed = " + WARP_SPEEDS[warpIndex], 10, y - 65);
+    public void drawFlightDataUI(Graphics2D g2d, int y){
+        g2d.drawString(String.format("Velocity = %.3f km/s", velocity.getAbs()), 10, y - 65);
+        g2d.drawString(String.format("Height = %.3f km", getPosition().getAbs() - orbit.celestialBody.radius), 10, y - 50);
+    }
 
-        g2d.drawString(String.format("Velocity = %.3f km/s", velocity.getAbs()), 10, y - 125);
-        g2d.drawString(String.format("Height = %.3f km", getPosition().getAbs() - orbit.celestialBody.radius), 10, y - 110);
+    public void drawPropellantUI(Graphics2D g2d, int x, int y){
+        if (deltaV > 0.9){
+            g2d.setColor(Color.GREEN);
+        } else if (deltaV > 0.45) {
+            g2d.setColor(Color.ORANGE);
+        } else {
+            g2d.setColor(Color.RED);
+        }
+        g2d.fillRect(x - 140, y - 77, (int) (deltaV * 60), 15);
+        g2d.setColor(Color.BLACK);
+        g2d.drawString(String.format("DeltaV = %.3f km/s", deltaV), x - 140, y - 65);
+        g2d.drawString(String.format("Throttle = %.0f%%", 100 * massFlowRate), x - 140, y - 50);
     }
 
 }

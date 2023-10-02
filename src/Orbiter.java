@@ -1,3 +1,5 @@
+import java.awt.*;
+
 public class Orbiter {
     public static int warpIndex = 0;
     public static final int[] WARP_SPEEDS = {1, 5, 10, 50, 100, 500, 1000, 5000, 10000};
@@ -38,4 +40,20 @@ public class Orbiter {
         }
     }
 
+    public static void drawWarpUI(Graphics2D g2d){
+        int [] x_triangle = new int[]{10, 10, 25};
+        int [] y_triangle = {5, 25, 15};
+
+        g2d.setColor(Color.GREEN);
+        g2d.fillPolygon(x_triangle, y_triangle, 3);
+
+        for (int i = 0; i < warpIndex; i++){
+            for (int j = 0; j < x_triangle.length; j++){
+                x_triangle[j] = x_triangle[j] + 10;
+            }
+            g2d.fillPolygon(x_triangle, y_triangle, 3);
+        }
+        g2d.setColor(Color.WHITE);
+        g2d.drawString("Warp speed = " + WARP_SPEEDS[warpIndex] + "x", 10, 40);
+    }
 }

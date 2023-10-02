@@ -20,6 +20,7 @@ public class OrbitCalculator extends JFrame implements KeyListener {
     private boolean dragged = false;
     private boolean zoomedOut, zoomedIn;
     private Orbiter orbiter;
+    private long timeVPressed;
 
     public OrbitCalculator(String title) {
         this.setTitle(title);
@@ -82,6 +83,7 @@ public class OrbitCalculator extends JFrame implements KeyListener {
         planets.add(earth);
         planets.add(mars);
         setCameraPosition();
+        timeVPressed = System.currentTimeMillis();
 
         spacecraft.initStartVectors(); // spacecraft starts in circular orbit around earth
 
@@ -108,11 +110,11 @@ public class OrbitCalculator extends JFrame implements KeyListener {
 //        long beginTime = System.currentTimeMillis();
 
         if (zoomedOut) {
-            scaleFactor = Math.max(50, scaleFactor - 5);
+            scaleFactor = Math.max(50, (int) (scaleFactor * 0.9));
             updateRadii();
             zoomedOut = false;
         } else if (zoomedIn) {
-            scaleFactor = Math.min(250, scaleFactor + 5);
+            scaleFactor = Math.min(5000, (int) (scaleFactor * 1.1));
             updateRadii();
             zoomedIn = false;
         }
@@ -188,10 +190,9 @@ public class OrbitCalculator extends JFrame implements KeyListener {
         }
         if (code == KeyEvent.VK_ESCAPE){ // pause/resume
             if (timer.isRunning()) {
-                System.out.println("paused");
                 timer.stop();
+                space.repaint();
             } else {
-                System.out.println("resumed");
                 timer.start();
             }
         }
@@ -205,6 +206,7 @@ public class OrbitCalculator extends JFrame implements KeyListener {
             cameraIndex++;
             cameraIndex = cameraIndex > 3 ? 0 : cameraIndex;
 
+            timeVPressed = System.currentTimeMillis();
             setCameraPosition();
             repaint();
         }
@@ -260,12 +262,26 @@ public class OrbitCalculator extends JFrame implements KeyListener {
             // draw engine thrust direction
             spacecraft.drawThrustVector(g2d);
 
-            // draw UI overlay
-            g2d.fillRect(0, yBound - 190, 190, 190);
+            // draw UI components:
+            Orbiter.drawWarpUI(g2d); // warp speeds
+
+            if (!timer.isRunning()) { // pause message
+                g2d.drawString("Simulation paused", xBound / 2 - 40, 25);
+            }
+            if (System.currentTimeMillis() - timeVPressed < 2000) { // camera position message
+                g2d.drawString("Camera position: " + (dragged ? "free" : orbiter.name), xBound / 2 - 45, yBound - 50);
+            }
+
+            // UI backgrounds
+            g2d.setColor(Color.GRAY);
+            g2d.fillRect(0, yBound - 130, 190, 130); // orbit data
+            g2d.fillRect(xBound - 150, yBound - 85, 150, 85); // spacecraft data
+
+            // orbit and spacecraft data UI
             g2d.setColor(Color.BLACK);
             spacecraft.orbit.drawUI(g2d, yBound);
-            g2d.drawString("Camera position: " + (dragged ? "free" : orbiter.name), 10, yBound - 50);
-            spacecraft.drawUI(g2d, yBound);
+            spacecraft.drawFlightDataUI(g2d, yBound);
+            spacecraft.drawPropellantUI(g2d, xBound, yBound);
         }
     }
 
