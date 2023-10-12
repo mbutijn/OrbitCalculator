@@ -20,7 +20,7 @@ public class OrbitCalculator extends JFrame implements KeyListener {
     private boolean dragged = false;
     private boolean zoomedOut, zoomedIn;
     private Orbiter orbiter;
-    private long timeVPressed;
+    private long timeCameraPositionChanged;
 
     public OrbitCalculator(String title) {
         this.setTitle(title);
@@ -55,6 +55,7 @@ public class OrbitCalculator extends JFrame implements KeyListener {
             @Override
             public void mouseDragged(MouseEvent e) {
                 dragged = true;
+                timeCameraPositionChanged = System.currentTimeMillis();
                 Orbiter.xdrag += e.getX() - mousePoint.x;
                 Orbiter.ydrag += e.getY() - mousePoint.y;
                 mousePoint = e.getPoint();
@@ -83,7 +84,7 @@ public class OrbitCalculator extends JFrame implements KeyListener {
         planets.add(earth);
         planets.add(mars);
         setCameraPosition();
-        timeVPressed = System.currentTimeMillis();
+        timeCameraPositionChanged = System.currentTimeMillis();
 
         spacecraft.initStartVectors(); // spacecraft starts in circular orbit around earth
 
@@ -206,7 +207,7 @@ public class OrbitCalculator extends JFrame implements KeyListener {
             cameraIndex++;
             cameraIndex = cameraIndex > 3 ? 0 : cameraIndex;
 
-            timeVPressed = System.currentTimeMillis();
+            timeCameraPositionChanged = System.currentTimeMillis();
             setCameraPosition();
             repaint();
         }
@@ -226,7 +227,10 @@ public class OrbitCalculator extends JFrame implements KeyListener {
 
     @Override
     public void keyReleased(KeyEvent e) {
-        spacecraft.engineAcceleration = false;
+        int code = e.getKeyCode();
+        if (code == KeyEvent.VK_UP || code == KeyEvent.VK_DOWN || code == KeyEvent.VK_LEFT || code == KeyEvent.VK_RIGHT) {
+            spacecraft.engineAcceleration = false;
+        }
     }
 
     private class Space extends JPanel {
@@ -268,7 +272,7 @@ public class OrbitCalculator extends JFrame implements KeyListener {
             if (!timer.isRunning()) { // pause message
                 g2d.drawString("Simulation paused", xBound / 2 - 40, 25);
             }
-            if (System.currentTimeMillis() - timeVPressed < 2000) { // camera position message
+            if (System.currentTimeMillis() - timeCameraPositionChanged < 2000) { // camera position message
                 g2d.drawString("Camera position: " + (dragged ? "free" : orbiter.name), xBound / 2 - 45, yBound - 50);
             }
 
