@@ -1,7 +1,7 @@
 import java.awt.*;
 
 public class Planet extends CelestialBody {
-    private final StaticOrbit staticOrbit;
+    protected final StaticOrbit staticOrbit;
 
     public Planet(double radius, double SOI, double mu, Color color, double semiMajorAxis, double eccentricity, String name){
         super(radius, SOI, mu, color, name);

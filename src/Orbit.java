@@ -12,6 +12,7 @@ public class Orbit {
     public CelestialBody celestialBody;
     public boolean isOnEscapePath, isOnCrashPath;
     private double semiMajorAxis, eccentricity;
+    private int skipDrawNode;
 
     public Orbit(CelestialBody celestialBody){
         this.celestialBody = celestialBody;
@@ -91,14 +92,19 @@ public class Orbit {
 
         numberOfNodes = positionsWrtCb.size();
         // System.out.println("numberOfNodes: " + numberOfNodes);
+        if (numberOfNodes > 200) {
+            skipDrawNode = numberOfNodes / 200;
+        } else {
+            skipDrawNode = 1;
+        }
     }
 
     public void draw(Graphics g2d) {
-        int last_i = 0;
-        for (int i = 0; i < numberOfNodes - 20; i += 20) {
-            g2d.drawLine(x_ints.get(i) + Orbiter.xdrag, y_ints.get(i) + Orbiter.ydrag, x_ints.get(i + 20) + Orbiter.xdrag, y_ints.get(i + 20) + Orbiter.ydrag);
-            last_i = i;
+        for (int i = 0; i < numberOfNodes - skipDrawNode; i += skipDrawNode) {
+            g2d.drawLine(x_ints.get(i) + Orbiter.xdrag, y_ints.get(i) + Orbiter.ydrag, x_ints.get(i + skipDrawNode) + Orbiter.xdrag, y_ints.get(i + skipDrawNode) + Orbiter.ydrag);
         }
+
+        int last_i = numberOfNodes - skipDrawNode - skipDrawNode;
         if (!isOnEscapePath && !isOnCrashPath) {
             g2d.drawLine(x_ints.get(last_i) + Orbiter.xdrag, y_ints.get(last_i) + Orbiter.ydrag, x_ints.get(0) + Orbiter.xdrag, y_ints.get(0) + Orbiter.ydrag);
         }
@@ -143,7 +149,7 @@ public class Orbit {
         celestialBody = OrbitCalculator.getPlanets().get(0);
     }
 
-    public void updatePixelPosition() {
+    public void updatePixelsPositions() {
         x_ints.clear();
         y_ints.clear();
         for (int i = 0; i < numberOfNodes; i++) {
@@ -153,8 +159,8 @@ public class Orbit {
     }
 
     public void drawUI(Graphics2D g2d, int y) {
-        g2d.drawString("Orbit is around " + celestialBody.name + (isOnEscapePath ? " (leaving SOI)" : isOnCrashPath ? " (crashing)" : ""), 10, y - 110);
-        g2d.drawString(String.format("Eccentricity = %.3f", eccentricity) + (eccentricity < 1 ? " (ellipse)" : " (hyperbola)"), 10, y - 95);
-        g2d.drawString(String.format("Semi major axis = %.3f km", semiMajorAxis), 10, y - 80);
+        g2d.drawString("Orbit is around " + celestialBody.name + (isOnEscapePath ? " (escape path)" : isOnCrashPath ? " (crash path)" : ""), 8, y - 110);
+        g2d.drawString(String.format("Eccentricity = %.3f", eccentricity) + (eccentricity < 1 ? " (ellipse)" : " (hyperbola)"), 8, y - 95);
+        g2d.drawString(String.format("Semi major axis = %.3f km", semiMajorAxis), 8, y - 80);
     }
 }

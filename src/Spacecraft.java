@@ -66,36 +66,36 @@ public class Spacecraft extends Orbiter {
         }
 
         // check flew out of sun's SOI or crashed
-        if (nodeIndex >= orbit.numberOfNodes || orbit.positionsWrtCb.get(nodeIndex).getAbs() < orbit.celestialBody.radius){
-            reset();
-            OrbitCalculator.resetPlanets();
-            return;
-        }
-
-        // update vectors
-        if (subIndex == 0) {
-            setPosition(orbit.positionsWrtCb.get(nodeIndex));
-            if (nodeIndex == 0) {
-                setOldPosition(orbit.positionsWrtCb.get(orbit.numberOfNodes - 1));
-            } else {
-                setOldPosition(orbit.positionsWrtCb.get(nodeIndex - 1));
+        if (nodeIndex >= 0) {
+            if (nodeIndex >= orbit.numberOfNodes || orbit.positionsWrtCb.get(nodeIndex).getAbs() < orbit.celestialBody.radius) {
+                reset();
+                OrbitCalculator.resetPlanets();
+                return;
             }
-            updateVelocity(orbit.dT);
+
+            // update vectors
+            setPosition(orbit.positionsWrtCb.get(nodeIndex));
+            if (nodeIndex > 0) {
+                oldPosition = orbit.positionsWrtCb.get(nodeIndex - 1);
+                velocity.setX((position.getX() - oldPosition.getX()) / orbit.dT);
+                velocity.setY((position.getY() - oldPosition.getY()) / orbit.dT);
+            }
         }
 
         // check engine acceleration
-        if (fuelMass > 0 && massFlowRate > 0) {
-            if (engineAcceleration && Orbiter.warpIndex == 0) {
+        if (fuelMass > massFlowRate * Orbiter.getWarpSpeed() && massFlowRate > 0) {
+            if (engineAcceleration && Orbiter.warpIndex < 3) {
 
                 accelerationDirection = velocity.getAngle() + engineModeDirection;
 
                 // Rocket equation over one timestep:
                 double currentMass = dryMass + fuelMass;
-                double deltaVUpdate = equivalentVelocity * Math.log(currentMass / (currentMass - massFlowRate));
-                fuelMass -= massFlowRate;
+                double deltaVUpdate = equivalentVelocity * Math.log(currentMass / (currentMass - massFlowRate * Orbiter.getWarpSpeed()));
+                fuelMass -= massFlowRate * Orbiter.getWarpSpeed();
 
                 velocity.addFromRadialCoordinates(deltaVUpdate, accelerationDirection);
                 recalculateOrbit(position, velocity);
+                nodeIndex = -1;
 
                 // Remaining deltaV
                 deltaV = equivalentVelocity * Math.log((dryMass + fuelMass) / dryMass);
@@ -125,13 +125,13 @@ public class Spacecraft extends Orbiter {
 
     public void initStartVectors(){
         double startAngle = 0.25 * Math.PI;
-        double height = 0.2;
+        double height = 0.1;
 
         Vector position = new Vector(height, startAngle, true);
         Vector velocity = new Vector(0.0001 * Math.round(10000 * Math.sqrt(orbit.celestialBody.mu / height)), startAngle - 0.5 * Math.PI, true);
 
         recalculateOrbit(position, velocity); // ellipse
-        orbit.updatePixelPosition();
+        orbit.updatePixelsPositions();
 
         setPosition(orbit.positionsWrtCb.get(nodeIndex));
     }
@@ -153,13 +153,8 @@ public class Spacecraft extends Orbiter {
         return position;
     }
 
-    public void updateVelocity(double dT){
-        velocity.setX((position.getX() - oldPosition.getX()) / dT);
-        velocity.setY((position.getY() - oldPosition.getY()) / dT);
-    }
-
     public void updatePixelPosition() {
-        orbit.updatePixelPosition();
+        orbit.updatePixelsPositions();
 
         x_int = orbit.celestialBody.x_int + (int) Math.round(OrbitCalculator.scaleFactor * position.getX());
         y_int = orbit.celestialBody.y_int - (int) Math.round(OrbitCalculator.scaleFactor * position.getY());
@@ -169,16 +164,13 @@ public class Spacecraft extends Orbiter {
         g2d.fillRect(x_int - 2 + xdrag, y_int - 2 + ydrag, 4,4);
     }
 
-    public void setOldPosition(Vector oldPosition) {
-        this.oldPosition = oldPosition;
-    }
-
     public void reset(){
         System.out.println("Spacecraft reset");
         orbit.reset();
         initStartVectors();
         fuelMass = 500;
         warpIndex = 0;
+        updateSubIndexMax();
         deltaV = equivalentVelocity * Math.log((dryMass + fuelMass) / dryMass);
         throttleIndex = massFlowRates.length;
         massFlowRate = 1.0;
@@ -229,8 +221,8 @@ public class Spacecraft extends Orbiter {
     }
 
     public void drawFlightDataUI(Graphics2D g2d, int y){
-        g2d.drawString(String.format("Velocity = %.3f km/s", velocity.getAbs()), 10, y - 65);
-        g2d.drawString(String.format("Height = %.3f km", getPosition().getAbs() - orbit.celestialBody.radius), 10, y - 50);
+        g2d.drawString(String.format("Velocity = %.3f km/s", velocity.getAbs()), 8, y - 65);
+        g2d.drawString(String.format("Height = %.3f km", getPosition().getAbs() - orbit.celestialBody.radius), 8, y - 50);
     }
 
     public void drawPropellantUI(Graphics2D g2d, int x, int y){
@@ -241,10 +233,17 @@ public class Spacecraft extends Orbiter {
         } else {
             g2d.setColor(Color.RED);
         }
-        g2d.fillRect(x - 140, y - 77, (int) (deltaV * 60), 15);
+        int leftEdge = x - 142;
+        g2d.fillRect(leftEdge, y - 82, (int) (deltaV * 60), 15);
         g2d.setColor(Color.BLACK);
-        g2d.drawString(String.format("DeltaV = %.3f km/s", deltaV), x - 140, y - 65);
-        g2d.drawString(String.format("Throttle = %.0f%%", 100 * massFlowRate), x - 140, y - 50);
+        g2d.drawString(String.format("DeltaV = %.3f km/s", deltaV), leftEdge, y - 70);
+        g2d.drawString(String.format("Throttle = %.0f%%", 100 * massFlowRate), leftEdge, y - 55);
+        if (engineAcceleration) {
+            g2d.fillRect(leftEdge, y - 50, (int) (120 * massFlowRate), 5);
+        }
+        for (int i = leftEdge; i <= x - 22; i += 12){
+            g2d.drawLine(i, y - 42, i, y - 45);
+        }
     }
 
 }

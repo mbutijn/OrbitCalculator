@@ -21,13 +21,13 @@ public class StaticOrbit {
         double distance = semiLatusRectum / (1 + eccentricity * Math.cos(trueAnomaly));
         double angularVelocity = twdAdt / (distance * distance);
         trueAnomaly += angularVelocity * timeStep;
-        if (trueAnomaly > 2 * Math.PI){
-            trueAnomaly -= 2 * Math.PI;
-        }
-
         position.setVectorFromRadiusAndAngle(distance, argumentOfPeriapsis + trueAnomaly);
 
         return position;
+    }
+
+    public double getTrueAnomaly(){
+        return trueAnomaly;
     }
 
     public void reset() {
